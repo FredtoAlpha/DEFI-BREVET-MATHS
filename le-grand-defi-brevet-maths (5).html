@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>Le Grand Défi Brevet — Maths</title>
+<style>
+/* ============ DESIGN TOKENS ============
+   Sujet : tournoi de révision DNB projeté en classe (3e). Registre "officiel"
+   français (typo type signalétique DIN/Bahnschrift) posé sur un plateau de jeu
+   sombre, panneaux "papier" pour le contenu, couleurs d'équipes franches.
+   Polices système uniquement (aucun chargement réseau — PC du collège). */
+:root{
+  --stage:#0f1530; --stage-2:#18204a; --stage-edge:#070b1d;
+  --panel:#f7f1e3; --panel-2:#efe7d2; --ink:#1b2030; --ink-soft:#5a5a4f;
+  --line:#d8cfb4; --line-strong:#1b2030;
+  --gold:#ecb73c; --gold-deep:#b9851f;
+  --t1:#d6453a; --t2:#2f74c0; --t3:#34935f; --t4:#e2a317;
+  --good:#34935f; --good-bg:#e2f0e6; --bad:#d6453a; --bad-bg:#f6e1dd;
+  --shadow:0 14px 40px rgba(0,0,0,.35);
+  --r:18px; --r-sm:11px;
+  --disp:"Bahnschrift","DIN Alternate","Segoe UI Semibold","Segoe UI",system-ui,sans-serif;
+  --body:"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:"Consolas","SFMono-Regular","Roboto Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  font-family:var(--body); color:var(--ink);
+  background:
+    radial-gradient(1200px 700px at 50% -10%, var(--stage-2), transparent 60%),
+    linear-gradient(180deg, var(--stage), var(--stage-edge));
+  background-attachment:fixed;
+  min-height:100%; overflow-x:hidden;
+}
+#app{max-width:1180px;margin:0 auto;padding:16px 18px 40px;min-height:100vh;display:flex;flex-direction:column}
+button{font-family:inherit;cursor:pointer}
+.hidden{display:none !important}
+
+/* ---------- generic stage card ---------- */
+.card{
+  background:var(--panel); color:var(--ink);
+  border-radius:var(--r); box-shadow:var(--shadow);
+  border:1px solid rgba(0,0,0,.06);
+  padding:26px 30px; position:relative;
+}
+.card.paper{
+  background-image:
+    linear-gradient(var(--panel),var(--panel)),
+    repeating-linear-gradient(transparent,transparent 33px,#c9d6e6 33px,#c9d6e6 34px);
+  background-blend-mode:normal;
+}
+.eyebrow{font-family:var(--disp);letter-spacing:.18em;text-transform:uppercase;font-size:.74rem;color:var(--gold-deep);font-weight:700}
+h1,h2,h3{font-family:var(--disp);line-height:1.05;margin:0}
+.headline{font-size:clamp(1.7rem,4.6vw,3rem);font-weight:700;letter-spacing:.01em}
+.headline .pop{color:var(--t1)}
+.sub{color:var(--ink-soft);font-size:1rem;margin-top:10px;max-width:60ch}
+
+/* ---------- buttons ---------- */
+.btn{
+  font-family:var(--disp);font-weight:700;letter-spacing:.03em;font-size:1.05rem;
+  border:none;border-radius:var(--r-sm);padding:14px 22px;color:#fff;
+  background:var(--ink);box-shadow:0 5px 0 #0a0d18;transition:transform .06s, box-shadow .06s, filter .15s;
+}
+.btn:hover{filter:brightness(1.07)}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 #0a0d18}
+.btn.primary{background:linear-gradient(180deg,var(--gold),var(--gold-deep));color:#241a04;box-shadow:0 5px 0 #7c5a13}
+.btn.primary:active{box-shadow:0 1px 0 #7c5a13}
+.btn.ghost{background:transparent;color:var(--panel);border:2px solid rgba(247,241,227,.45);box-shadow:none}
+.btn.ghost:active{transform:translateY(2px)}
+.btn.small{font-size:.85rem;padding:9px 14px;box-shadow:0 4px 0 #0a0d18}
+.btn.small:active{box-shadow:0 1px 0 #0a0d18}
+.btn[disabled]{opacity:.4;pointer-events:none}
+
+/* ---------- HUD (top bar pendant le jeu) ---------- */
+#hud{display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap}
+.round-badge{font-family:var(--disp);font-weight:700;color:var(--panel);display:flex;align-items:baseline;gap:10px}
+.round-badge .num{background:var(--gold);color:#241a04;border-radius:9px;padding:4px 10px;font-size:.95rem;letter-spacing:.06em}
+.round-badge .nm{font-size:1.15rem;letter-spacing:.02em}
+.hud-spacer{flex:1}
+.timer{font-family:var(--mono);font-weight:700;font-size:1.5rem;color:var(--panel);min-width:64px;text-align:center;
+  background:rgba(0,0,0,.28);border-radius:10px;padding:4px 12px;border:1px solid rgba(255,255,255,.12)}
+.timer.warn{color:#ffd27a}
+.timer.crit{color:#ff8a7a;animation:pulse .6s infinite alternate}
+@keyframes pulse{to{transform:scale(1.08)}}
+.timer-bar{height:7px;border-radius:99px;background:rgba(255,255,255,.14);overflow:hidden;width:100%;margin-bottom:14px}
+.timer-bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--t1));width:100%;transition:width .25s linear}
+
+/* ---------- scoreboard ---------- */
+.board{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.team-chip{flex:1 1 0;min-width:120px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+  border-radius:13px;padding:10px 12px;color:var(--panel);position:relative;overflow:hidden;transition:transform .15s, box-shadow .15s}
+.team-chip .bar{position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--c)}
+.team-chip .nm{font-family:var(--disp);font-weight:700;letter-spacing:.02em;font-size:1rem;padding-left:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.team-chip .sc{font-family:var(--disp);font-weight:700;font-size:1.7rem;padding-left:6px;line-height:1}
+.team-chip.active{box-shadow:0 0 0 2px var(--c), 0 10px 24px rgba(0,0,0,.35);transform:translateY(-3px);background:rgba(255,255,255,.12)}
+.team-chip.active::after{content:"À TOI";position:absolute;right:8px;top:8px;font-family:var(--disp);font-size:.6rem;letter-spacing:.12em;background:var(--c);color:#fff;padding:2px 6px;border-radius:6px}
+.turn-banner{font-family:var(--disp);font-weight:700;letter-spacing:.02em;color:var(--ink);font-size:1.15rem;margin-bottom:6px;display:flex;align-items:center;gap:10px}
+.turn-dot{width:16px;height:16px;border-radius:50%;background:var(--c);display:inline-block;box-shadow:0 0 0 4px color-mix(in srgb,var(--c) 30%, transparent)}
+
+/* ---------- question / choices ---------- */
+.qmeta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.tag{font-family:var(--disp);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;
+  padding:4px 9px;border-radius:7px;background:var(--panel-2);color:var(--ink-soft);border:1px solid var(--line)}
+.tag.mat{color:#fff}
+.tag.mat.H{background:#9a3b30}.tag.mat.G{background:#1f6aa8}.tag.mat.E{background:#5a4a86}
+.qtext{font-family:var(--disp);font-weight:700;font-size:clamp(1.3rem,2.8vw,1.9rem);line-height:1.2;margin:4px 0 20px}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:640px){.choices{grid-template-columns:1fr}}
+.choice{
+  text-align:left;background:#fff;color:var(--ink);border:2px solid var(--line);
+  border-radius:13px;padding:15px 16px 15px 52px;font-size:1.05rem;font-family:var(--body);
+  position:relative;box-shadow:0 3px 0 rgba(0,0,0,.06);line-height:1.3;transition:border-color .12s, transform .08s, background .12s}
+.choice:hover{border-color:var(--gold);transform:translateY(-1px)}
+.choice .key{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:8px;
+  background:var(--ink);color:#fff;font-family:var(--disp);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:1rem}
+.choice.good{background:var(--good-bg);border-color:var(--good)}
+.choice.good .key{background:var(--good)}
+.choice.bad{background:var(--bad-bg);border-color:var(--bad);text-decoration:line-through;opacity:.85}
+.choice.bad .key{background:var(--bad)}
+.choice[disabled]{cursor:default}
+.explain{margin-top:16px;border-left:5px solid var(--good);background:#eef5ef;border-radius:0 12px 12px 0;padding:13px 16px;font-size:1rem;line-height:1.45}
+.explain.ko{border-left-color:var(--bad);background:#f8ece9}
+.explain b{font-family:var(--disp);letter-spacing:.02em}
+.feedback-line{font-family:var(--disp);font-weight:700;font-size:1.15rem;margin-bottom:4px}
+.gain{color:var(--good)} .nogain{color:var(--ink-soft)}
+
+/* ---------- launch / setup ---------- */
+.hero-wrap{display:flex;flex-direction:column;gap:18px;justify-content:center;flex:1}
+.kbd{font-family:var(--mono);background:#fff;border:1px solid var(--line);border-bottom-width:3px;border-radius:6px;padding:1px 7px;font-size:.85rem;color:var(--ink)}
+.setup-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;align-items:start}
+@media(max-width:820px){.setup-grid{grid-template-columns:1fr}}
+.team-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.team-row .swatch{width:26px;height:26px;border-radius:8px;background:var(--c);flex:none;box-shadow:inset 0 0 0 2px rgba(255,255,255,.4)}
+.team-row input{flex:1;font-family:var(--disp);font-weight:700;font-size:1.05rem;color:var(--ink);
+  border:2px solid var(--line);border-radius:10px;padding:9px 12px;background:#fff}
+.team-row input:focus{outline:none;border-color:var(--gold)}
+.counter{display:flex;align-items:center;gap:8px}
+.counter button{width:40px;height:40px;border-radius:10px;border:2px solid var(--line);background:#fff;font-family:var(--disp);font-size:1.3rem;font-weight:700;color:var(--ink)}
+.counter .val{font-family:var(--disp);font-weight:700;font-size:1.4rem;min-width:28px;text-align:center}
+.rounds-list{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.round-toggle{display:flex;align-items:center;gap:12px;padding:11px 14px;border:2px solid var(--line);border-radius:12px;background:#fff;text-align:left;color:var(--ink);transition:border-color .12s, background .12s}
+.round-toggle .ic{font-size:1.4rem;flex:none}
+.round-toggle .tt{font-family:var(--disp);font-weight:700;font-size:1.02rem}
+.round-toggle .ds{font-size:.82rem;color:var(--ink-soft)}
+.round-toggle .chk{margin-left:auto;width:26px;height:26px;border-radius:8px;border:2px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--disp);color:#fff;font-weight:700}
+.round-toggle.on{border-color:var(--good);background:#f1f8f3}
+.round-toggle.on .chk{background:var(--good);border-color:var(--good)}
+
+/* ---------- maps ---------- */
+.map-prompt{font-family:var(--disp);font-weight:700;font-size:clamp(1.2rem,2.6vw,1.7rem);margin-bottom:12px}
+.map-prompt .what{color:var(--t1)}
+.mapwrap{background:#cfe0ef;border-radius:14px;border:2px solid var(--line-strong);overflow:hidden;position:relative}
+.mapwrap svg{display:block;width:100%;height:auto;touch-action:manipulation}
+.land{fill:var(--panel-2);stroke:#9a9482;stroke-width:.6;stroke-linejoin:round}
+.coast{fill:var(--panel-2);stroke:#3a3328;stroke-width:1.1;stroke-linejoin:round}
+.country{fill:var(--panel-2);stroke:#9a9482;stroke-width:.6;cursor:pointer;transition:fill .1s}
+.country:hover{fill:#fff0c9}
+.country.good{fill:var(--good);stroke:#1f5e3c}
+.country.bad{fill:var(--bad);stroke:#7c241b}
+.country.lock{pointer-events:none}
+.pin{cursor:pointer}
+.pin .dot{fill:#fff;stroke:var(--ink);stroke-width:2;transition:fill .1s, r .1s}
+.pin:hover .dot{fill:#ffe39a;r:13}
+.pin.good .dot{fill:var(--good);stroke:#1f5e3c}
+.pin.bad .dot{fill:var(--bad);stroke:#7c241b}
+.pin.lock{pointer-events:none}
+.pin text{font-family:var(--disp);font-weight:700;font-size:13px;fill:var(--ink);paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round;pointer-events:none}
+.map-progress{font-family:var(--disp);color:var(--ink-soft);font-size:.92rem;margin-top:10px;text-align:center}
+
+/* ---------- frise / ordering ---------- */
+.seq-instruction{font-family:var(--disp);font-weight:700;font-size:1.15rem;margin-bottom:14px}
+.seq-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.seq-card{background:#fff;border:2px solid var(--line);border-radius:12px;padding:12px 14px;font-family:var(--body);
+  font-size:1rem;flex:1 1 150px;min-width:140px;text-align:center;position:relative;box-shadow:0 3px 0 rgba(0,0,0,.06);transition:transform .08s, border-color .12s}
+.seq-card:hover{border-color:var(--gold);transform:translateY(-2px)}
+.seq-card[disabled]{opacity:.35;pointer-events:none}
+.seq-card .order-badge{position:absolute;top:-10px;left:-10px;width:26px;height:26px;border-radius:50%;background:var(--ink);color:#fff;font-family:var(--disp);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+.seq-slots{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.seq-slot{flex:1 1 100px;min-width:90px;border:2px dashed var(--line);border-radius:10px;min-height:54px;display:flex;align-items:center;justify-content:center;text-align:center;padding:6px;font-size:.9rem;color:var(--ink-soft);font-family:var(--body)}
+.seq-slot.filled{border-style:solid;background:#fff;color:var(--ink)}
+.seq-slot.right{border-color:var(--good);background:var(--good-bg)}
+.seq-slot.wrong{border-color:var(--bad);background:var(--bad-bg)}
+.seq-slot .yr{font-family:var(--disp);font-weight:700;font-size:.95rem;display:block;margin-top:3px}
+
+/* ---------- match (relier) ---------- */
+.match-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media(max-width:640px){.match-grid{gap:12px}}
+.match-col{display:flex;flex-direction:column;gap:10px}
+.match-item{background:#fff;border:2px solid var(--line);border-radius:11px;padding:12px 14px;font-size:1rem;text-align:left;transition:border-color .1s, background .1s;position:relative}
+.match-item:hover{border-color:var(--gold)}
+.match-item.sel{border-color:var(--gold);background:#fff7e3;box-shadow:0 0 0 2px var(--gold)}
+.match-item.done{border-color:var(--good);background:var(--good-bg);pointer-events:none}
+.match-item.done::after{content:"✓";position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--good);font-weight:700}
+
+/* ---------- DC kit ---------- */
+.dc-sujet{background:var(--panel-2);border-radius:12px;padding:14px 16px;margin-bottom:14px;border:1px solid var(--line)}
+.dc-sujet .verbe{display:inline-block;font-family:var(--disp);font-weight:700;background:var(--t1);color:#fff;border-radius:7px;padding:2px 10px;letter-spacing:.05em;margin-bottom:6px;font-size:.8rem;text-transform:uppercase}
+.dc-sujet .txt{font-family:var(--disp);font-weight:700;font-size:1.2rem;line-height:1.25}
+.idea{display:flex;gap:10px;align-items:center;background:#fff;border:2px solid var(--line);border-radius:11px;padding:11px 14px;margin-bottom:9px}
+.idea .lbl{flex:1;font-size:1rem;line-height:1.3}
+.idea .acts{display:flex;gap:6px;flex:none}
+.idea .acts button{font-family:var(--disp);font-weight:700;font-size:.8rem;border:2px solid var(--line);background:#fff;border-radius:8px;padding:7px 10px;color:var(--ink)}
+.idea.ok{border-color:var(--good);background:var(--good-bg)}
+.idea.no{border-color:var(--bad);background:var(--bad-bg)}
+.idea .verdict{font-family:var(--disp);font-weight:700;font-size:.8rem;padding:4px 8px;border-radius:7px}
+.idea.ok .verdict{color:var(--good)} .idea.no .verdict{color:var(--bad)}
+
+/* ---------- wager (boss) ---------- */
+.wager-box{text-align:center}
+.wager-opts{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+.wager-chip{font-family:var(--disp);font-weight:700;font-size:1.2rem;border:2px solid var(--line);background:#fff;border-radius:12px;padding:14px 22px;color:var(--ink);min-width:90px}
+.wager-chip:hover{border-color:var(--gold)}
+.wager-chip.allin{background:linear-gradient(180deg,var(--gold),var(--gold-deep));color:#241a04;border-color:var(--gold-deep)}
+.wager-note{color:var(--ink-soft);font-size:.92rem}
+
+/* ---------- podium / bilan ---------- */
+.podium{display:flex;justify-content:center;align-items:flex-end;gap:14px;margin:26px 0 10px;flex-wrap:wrap}
+.pod{display:flex;flex-direction:column;align-items:center;gap:8px}
+.pod .crown{font-size:1.8rem}
+.pod .block{border-radius:14px 14px 0 0;width:130px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;color:#fff;padding:12px 8px;box-shadow:var(--shadow)}
+.pod .block .nm{font-family:var(--disp);font-weight:700;font-size:1.05rem;text-align:center;line-height:1.1}
+.pod .block .sc{font-family:var(--disp);font-weight:700;font-size:2rem;line-height:1}
+.pod .rank{font-family:var(--disp);font-weight:700;color:var(--panel);font-size:.85rem}
+.pod.p1 .block{height:170px;background:linear-gradient(180deg,var(--gold),var(--gold-deep))}
+.pod.p1 .block .nm,.pod.p1 .block .sc{color:#241a04}
+.pod.p2 .block{height:128px;background:#9aa4b8}
+.pod.p3 .block{height:100px;background:#b08457}
+.review{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+@media(max-width:760px){.review{grid-template-columns:1fr}}
+.review .col h3{font-size:1.05rem;margin-bottom:8px;color:var(--ink)}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.bar-row .nm{flex:1 1 40%;font-size:.92rem}
+.bar-row .track{flex:1 1 50%;height:14px;border-radius:99px;background:#e6ddc6;overflow:hidden}
+.bar-row .track > i{display:block;height:100%;border-radius:99px}
+.bar-row .pc{font-family:var(--disp);font-weight:700;font-size:.85rem;min-width:42px;text-align:right}
+.niveau{display:inline-block;font-family:var(--disp);font-weight:700;border-radius:8px;padding:3px 10px;font-size:.85rem;color:#fff}
+
+/* ---------- overlay (help / pause / reveal) ---------- */
+.overlay{position:fixed;inset:0;background:rgba(7,11,29,.72);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
+.overlay .sheet{max-width:560px;width:100%}
+.overlay .sheet h2{margin-bottom:12px}
+.shortcuts{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:.95rem;align-items:center}
+
+/* ---------- misc ---------- */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;align-items:center}
+.toolbar .hud-spacer{min-width:10px}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:60}
+.center{text-align:center}
+.mt{margin-top:16px}
+.muted{color:var(--ink-soft)}
+.foot{margin-top:auto;padding-top:18px;text-align:center;color:rgba(247,241,227,.5);font-size:.8rem}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+.mode-card{display:flex;flex-direction:column;gap:6px;text-align:left;align-items:flex-start;cursor:pointer;border:1px solid rgba(0,0,0,.06);transition:transform .12s, box-shadow .12s;width:100%}
+.mode-card:hover{transform:translateY(-4px);box-shadow:0 22px 50px rgba(0,0,0,.42)}
+.mode-go{font-family:var(--disp);font-weight:700;color:var(--gold-deep);margin-top:8px;letter-spacing:.02em}
+.team-chip.solo{flex:1}
+.solo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-top:14px}
+.solo-tile{gap:2px}
+.solo-tile .sub{font-size:.85rem;margin-top:2px}
+.tag.mat.N{background:#2f74c0}.tag.mat.F{background:#7a3f9e}.tag.mat.G{background:#b8602a}.tag.mat.M{background:#2f8f6b}.tag.mat.A{background:#5a5a7a}
+svg.grid{display:block;width:100%;height:auto;background:#fbf7ec;border-radius:10px;touch-action:manipulation}
+svg.grid .gl{stroke:#d9c7a6;stroke-width:1}
+svg.grid .axis{stroke:#1b2030;stroke-width:2}
+svg.grid .tick{font-family:var(--mono);font-size:13px;fill:#5a5a4f}
+svg.grid .axlab{font-family:var(--mono);font-size:15px;font-weight:700;fill:#1b2030}
+svg.grid .hit{cursor:crosshair}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.appver{position:fixed;right:12px;bottom:12px;z-index:99999;background:#1b2030;color:#f4e4bf;border:2px solid #c79a3a;border-radius:999px;padding:6px 14px;font:700 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.3px;box-shadow:0 4px 14px rgba(0,0,0,.35);opacity:.96}
+</style>
+</head>
+<body>
+<div class="appver" id="appver">v3</div>
+<div id="app"></div>
+<canvas class="confetti hidden" id="confetti"></canvas>
+<script>
+/* ====================================================================
+   LE GRAND DÉFI BREVET — moteur de jeu (vanilla JS, 100% hors-ligne)
+   ==================================================================== */
+"use strict";
+
+/* ============ BANQUE DE CONTENUS — MATHÉMATIQUES (programme DNB 3e) ============ */
+/* mat: N=Nombres&calcul F=Données&fonctions G=Géométrie M=Grandeurs&mesures A=Algorithmique */
+const QUIZ = [
+{mat:"N",theme:"Fractions",comp:"Calculer",diff:1,q:"Combien font 1/2 + 1/3 ?",c:["5/6","2/5","1/6","2/6"],a:0,e:"On réduit au même dénominateur 6 : 3/6 + 2/6 = 5/6."},
+{mat:"N",theme:"Fractions",comp:"Calculer",diff:2,q:"Combien font 2/3 × 3/4 ?",c:["5/7","6/7","6/12 = 1/2","1/4"],a:2,e:"On multiplie les numérateurs entre eux et les dénominateurs entre eux : (2×3)/(3×4) = 6/12 = 1/2."},
+{mat:"N",theme:"Puissances",comp:"Calculer",diff:1,q:"Combien vaut 2⁵ ?",c:["25","10","32","16"],a:2,e:"2⁵ = 2×2×2×2×2 = 32."},
+{mat:"N",theme:"Puissances",comp:"Notion",diff:2,q:"Combien vaut 10⁻³ ?",c:["−0,001","0,001","−1000","1000"],a:1,e:"10⁻³ = 1/10³ = 1/1000 = 0,001."},
+{mat:"N",theme:"Puissances",comp:"Calculer",diff:2,q:"Quelle est l'écriture scientifique de 32 000 ?",c:["0,32 × 10⁵","32 × 10³","3,2 × 10⁴","3,2 × 10³"],a:2,e:"L'écriture scientifique n'a qu'un seul chiffre non nul avant la virgule : 32 000 = 3,2 × 10⁴."},
+{mat:"N",theme:"Priorités opératoires",comp:"Calculer",diff:1,q:"Combien vaut 3 + 4 × 2 ?",c:["10","14","11","24"],a:2,e:"La multiplication est prioritaire : 4×2 = 8, puis 3 + 8 = 11."},
+{mat:"N",theme:"Calcul littéral",comp:"Calculer",diff:2,q:"Quelle est la forme développée de (x + 3)² ?",c:["x² + 6x + 9","x² + 3x + 9","x² + 9","x² + 6x + 3"],a:0,e:"Identité remarquable (a+b)² = a² + 2ab + b² : x² + 2·x·3 + 3² = x² + 6x + 9."},
+{mat:"N",theme:"Calcul littéral",comp:"Calculer",diff:2,q:"Développe 3(2x − 5).",c:["6x − 15","6x − 5","5x − 15","6x + 15"],a:0,e:"On distribue : 3×2x − 3×5 = 6x − 15."},
+{mat:"N",theme:"Calcul littéral",comp:"Raisonner",diff:3,q:"Factorise x² − 25.",c:["(x − 5)(x + 5)","(x + 5)²","x(x − 25)","(x − 5)²"],a:0,e:"Différence de deux carrés : a² − b² = (a−b)(a+b), donc x² − 5² = (x−5)(x+5)."},
+{mat:"N",theme:"Équations",comp:"Calculer",diff:2,q:"Quelle est la solution de 2x + 6 = 0 ?",c:["x = 6","x = −3","x = −6","x = 3"],a:1,e:"2x = −6, donc x = −6 ÷ 2 = −3."},
+{mat:"N",theme:"Arithmétique",comp:"Notion",diff:2,q:"Lequel de ces nombres est un nombre premier ?",c:["33","27","21","29"],a:3,e:"29 n'a que deux diviseurs : 1 et lui-même. 21 = 3×7, 27 = 3³, 33 = 3×11."},
+{mat:"N",theme:"Arithmétique",comp:"Calculer",diff:2,q:"Quel est le PGCD de 24 et 36 ?",c:["72","12","24","6"],a:1,e:"Le plus grand diviseur commun est 12 (24 = 12×2 et 36 = 12×3)."},
+{mat:"N",theme:"Nombres relatifs",comp:"Calculer",diff:1,q:"Combien font (−7) + (−5) ?",c:["−12","12","−2","2"],a:0,e:"Deux nombres négatifs : on additionne les distances et on garde le signe −, donc −12."},
+{mat:"N",theme:"Nombres relatifs",comp:"Calculer",diff:2,q:"Combien font (−4) × (−6) ?",c:["10","−10","24","−24"],a:2,e:"Le produit de deux nombres négatifs est positif : 4×6 = 24."},
+{mat:"F",theme:"Proportionnalité",comp:"Calculer",diff:1,q:"Si 3 stylos coûtent 6 €, combien coûtent 5 stylos (au même prix) ?",c:["10 €","15 €","11 €","9 €"],a:0,e:"Prix d'un stylo : 6 ÷ 3 = 2 €. Pour 5 stylos : 5 × 2 = 10 €."},
+{mat:"F",theme:"Pourcentages",comp:"Calculer",diff:1,q:"Combien font 20 % de 150 ?",c:["15","20","30","50"],a:2,e:"20 % = 20/100 = 0,2 ; 0,2 × 150 = 30."},
+{mat:"F",theme:"Pourcentages",comp:"Raisonner",diff:2,q:"Un article à 80 € augmente de 25 %. Quel est son nouveau prix ?",c:["20 €","105 €","85 €","100 €"],a:3,e:"Augmentation : 25 % de 80 = 20 €. Nouveau prix : 80 + 20 = 100 € (ou 80 × 1,25)."},
+{mat:"F",theme:"Statistiques",comp:"Notion",diff:2,q:"Quelle est la médiane de la série 4 ; 7 ; 9 ; 12 ; 15 ?",c:["9","12","7","47/5"],a:0,e:"La médiane partage la série ordonnée en deux. Avec 5 valeurs, c'est la 3ᵉ : 9."},
+{mat:"F",theme:"Statistiques",comp:"Calculer",diff:1,q:"Quelle est la moyenne de 8 ; 10 ; 12 ?",c:["30","11","10","9"],a:2,e:"(8 + 10 + 12) ÷ 3 = 30 ÷ 3 = 10."},
+{mat:"F",theme:"Statistiques",comp:"Notion",diff:2,q:"Quelle est l'étendue de la série 5 ; 8 ; 3 ; 12 ; 7 ?",c:["7","9","12","3"],a:1,e:"Étendue = valeur maximale − valeur minimale = 12 − 3 = 9."},
+{mat:"F",theme:"Probabilités",comp:"Notion",diff:1,q:"On lance un dé équilibré à 6 faces. Quelle est la probabilité d'obtenir un 4 ?",c:["4/6","1/4","1/6","1/2"],a:2,e:"Il y a 1 issue favorable sur 6 issues équiprobables : 1/6."},
+{mat:"F",theme:"Probabilités",comp:"Raisonner",diff:2,q:"Un sac contient 3 boules rouges et 5 bleues. Probabilité de tirer une rouge ?",c:["1/3","3/5","5/8","3/8"],a:3,e:"8 boules au total dont 3 rouges : la probabilité est 3/8."},
+{mat:"F",theme:"Fonctions",comp:"Notion",diff:2,q:"Une fonction linéaire est de la forme…",c:["f(x) = a/x","f(x) = ax + b","f(x) = x²","f(x) = ax"],a:3,e:"Une fonction linéaire s'écrit f(x) = ax. Sa représentation est une droite passant par l'origine."},
+{mat:"F",theme:"Fonctions",comp:"Calculer",diff:2,q:"Pour f(x) = 3x − 2, combien vaut f(4) ?",c:["5","14","12","10"],a:3,e:"f(4) = 3×4 − 2 = 12 − 2 = 10."},
+{mat:"F",theme:"Fonctions",comp:"Notion",diff:2,q:"La représentation graphique d'une fonction affine est…",c:["une parabole","une droite","une hyperbole","un cercle"],a:1,e:"Une fonction affine f(x) = ax + b est représentée par une droite."},
+{mat:"G",theme:"Pythagore",comp:"Calculer",diff:2,q:"Dans un triangle rectangle, les côtés de l'angle droit mesurent 3 et 4. Quelle est la longueur de l'hypoténuse ?",c:["6","7","√7","5"],a:3,e:"Pythagore : hyp² = 3² + 4² = 9 + 16 = 25, donc hyp = √25 = 5."},
+{mat:"G",theme:"Pythagore",comp:"Notion",diff:1,q:"Le théorème de Pythagore s'applique dans un triangle…",c:["rectangle","équilatéral","isocèle","quelconque"],a:0,e:"Pythagore relie les côtés d'un triangle rectangle : hypoténuse² = somme des carrés des deux autres côtés."},
+{mat:"G",theme:"Trigonométrie",comp:"Notion",diff:2,q:"Dans un triangle rectangle, le cosinus d'un angle aigu vaut…",c:["opposé / adjacent","adjacent / hypoténuse","opposé / hypoténuse","hypoténuse / adjacent"],a:1,e:"Moyen mnémotechnique CAH : cosinus = côté adjacent ÷ hypoténuse."},
+{mat:"G",theme:"Thalès",comp:"Notion",diff:2,q:"Le théorème de Thalès permet surtout de calculer…",c:["des volumes","des longueurs, avec des droites parallèles","des aires","des angles"],a:1,e:"Thalès donne des rapports de longueurs égaux dans une configuration de droites sécantes coupées par deux parallèles."},
+{mat:"G",theme:"Transformations",comp:"Notion",diff:2,q:"Quelle transformation fait « glisser » une figure sans la tourner ni la déformer ?",c:["l'homothétie de rapport 2","la projection","la rotation","la translation"],a:3,e:"La translation fait glisser la figure selon un vecteur : ni rotation, ni changement de taille."},
+{mat:"G",theme:"Transformations",comp:"Raisonner",diff:2,q:"Une homothétie de rapport 3 multiplie les longueurs par…",c:["6","9","3","1/3"],a:2,e:"Le rapport d'une homothétie multiplie directement les longueurs (×3). Les aires, elles, sont multipliées par 3² = 9."},
+{mat:"M",theme:"Volumes",comp:"Calculer",diff:1,q:"Quel est le volume d'un cube d'arête 4 cm ?",c:["64 cm³","12 cm³","48 cm³","16 cm³"],a:0,e:"Volume d'un cube = arête³ = 4³ = 64 cm³."},
+{mat:"M",theme:"Vitesse",comp:"Calculer",diff:2,q:"Une voiture parcourt 150 km en 2 h. Quelle est sa vitesse moyenne ?",c:["50 km/h","100 km/h","300 km/h","75 km/h"],a:3,e:"Vitesse = distance ÷ temps = 150 ÷ 2 = 75 km/h."},
+{mat:"M",theme:"Conversions",comp:"Notion",diff:1,q:"Combien de centimètres dans 2,5 mètres ?",c:["250 cm","25 cm","0,025 cm","2500 cm"],a:0,e:"1 m = 100 cm, donc 2,5 m = 250 cm."},
+{mat:"M",theme:"Aires",comp:"Calculer",diff:2,q:"Quelle est l'aire d'un disque de rayon 5 cm ? (π ≈ 3,14)",c:["25 cm²","31,4 cm²","15,7 cm²","78,5 cm²"],a:3,e:"Aire d'un disque = π × r² = 3,14 × 5² = 3,14 × 25 ≈ 78,5 cm²."},
+{mat:"M",theme:"Agrandissement-réduction",comp:"Raisonner",diff:3,q:"On agrandit une figure avec un coefficient 2. Son aire est multipliée par…",c:["2","8","4","1/2"],a:2,e:"Les longueurs sont ×2, donc les aires sont ×2² = 4 (et les volumes ×2³ = 8)."},
+{mat:"A",theme:"Algorithmique",comp:"Notion",diff:2,q:"Dans Scratch, le bloc « répéter 4 fois » sert à…",c:["faire une boucle exécutée 4 fois","tester une condition","poser une question","arrêter le programme"],a:0,e:"« répéter n fois » est une boucle : les instructions à l'intérieur sont exécutées n fois de suite."},
+{mat:"A",theme:"Algorithmique",comp:"Raisonner",diff:2,q:"Au départ x = 0. On exécute 3 fois : « ajouter 2 à x ». Que vaut x à la fin ?",c:["2","6","5","8"],a:1,e:"x passe de 0 à 2, puis 4, puis 6. À la fin, x = 6."},
+{mat:"N",theme:"Arithmétique",comp:"Calculer",diff:2,q:"Quel est le PGCD de 12 et 18 ?",c:["9","36","6","3"],a:2,e:"Le plus grand diviseur commun de 12 et 18 est 6 (12=6×2, 18=6×3)."},
+{mat:"N",theme:"Arithmétique",comp:"Notion",diff:1,q:"Lequel de ces nombres est premier ?",c:["21","17","15","9"],a:1,e:"17 n'a que deux diviseurs (1 et 17) : il est premier. 9=3×3, 15=3×5, 21=3×7."},
+{mat:"N",theme:"Nombres relatifs",comp:"Calculer",diff:1,q:"Combien font (−5) + (+3) ?",c:["−8","−2","+2","+8"],a:1,e:"On part de −5 et on avance de 3 : −5 + 3 = −2."},
+{mat:"N",theme:"Nombres relatifs",comp:"Calculer",diff:2,q:"Combien font (−4) × (−3) ?",c:["−7","−12","+12","+7"],a:2,e:"Le produit de deux nombres négatifs est positif : (−4)×(−3) = +12."},
+{mat:"N",theme:"Puissances",comp:"Calculer",diff:2,q:"Combien vaut 2³ × 2⁴ ?",c:["2⁷","2¹","4⁷","2¹²"],a:0,e:"Même base : on additionne les exposants, 2³×2⁴ = 2⁷."},
+{mat:"N",theme:"Puissances",comp:"Calculer",diff:1,q:"Combien vaut 10³ ?",c:["10000","1000","300","30"],a:1,e:"10³ = 10×10×10 = 1000."},
+{mat:"N",theme:"Puissances",comp:"Calculer",diff:3,q:"Quelle est l'écriture scientifique de 45 000 ?",c:["4,5×10³","4,5×10⁴","45×10³","0,45×10⁵"],a:1,e:"Un seul chiffre non nul avant la virgule : 45 000 = 4,5×10⁴."},
+{mat:"N",theme:"Calcul littéral",comp:"Calculer",diff:2,q:"Développe 3(x + 2).",c:["3x + 5","x + 6","3x + 6","3x + 2"],a:2,e:"On distribue : 3×x + 3×2 = 3x + 6."},
+{mat:"N",theme:"Calcul littéral",comp:"Calculer",diff:2,q:"Développe 2(3x − 4).",c:["6x − 4","6x − 6","5x − 8","6x − 8"],a:3,e:"2×3x − 2×4 = 6x − 8."},
+{mat:"N",theme:"Calcul littéral",comp:"Calculer",diff:1,q:"Réduis 5x + 3x.",c:["8x","15x","2x","8x²"],a:0,e:"On additionne les coefficients : 5x + 3x = 8x."},
+{mat:"N",theme:"Équations",comp:"Calculer",diff:1,q:"Résous 2x = 10.",c:["x = 5","x = 20","x = 8","x = 12"],a:0,e:"On divise par 2 : x = 10 ÷ 2 = 5."},
+{mat:"N",theme:"Équations",comp:"Calculer",diff:2,q:"Résous x + 7 = 12.",c:["x = 7","x = 5","x = 19","x = 12"],a:1,e:"On retranche 7 : x = 12 − 7 = 5."},
+{mat:"N",theme:"Priorités opératoires",comp:"Calculer",diff:1,q:"Combien font 2 + 3 × 4 ?",c:["9","24","14","20"],a:2,e:"La multiplication d'abord : 3×4=12, puis 2+12 = 14."},
+{mat:"N",theme:"Calcul littéral",comp:"Calculer",diff:3,q:"Factorise 5x + 10.",c:["5(x + 2)","5x(1 + 2)","5(x + 10)","x(5 + 10)"],a:0,e:"Facteur commun 5 : 5x + 10 = 5(x + 2)."},
+{mat:"F",theme:"Proportionnalité",comp:"Calculer",diff:2,q:"3 kg de pommes coûtent 6 €. Combien coûtent 5 kg ?",c:["11 €","10 €","9 €","15 €"],a:1,e:"Prix au kg = 6 ÷ 3 = 2 €. Pour 5 kg : 5 × 2 = 10 €."},
+{mat:"F",theme:"Pourcentages",comp:"Calculer",diff:1,q:"Combien font 20 % de 50 ?",c:["30","10","5","20"],a:1,e:"20 % de 50 = 0,20 × 50 = 10."},
+{mat:"F",theme:"Pourcentages",comp:"Calculer",diff:2,q:"Un prix de 200 € augmente de 10 %. Quel est le nouveau prix ?",c:["210 €","220 €","240 €","190 €"],a:1,e:"10 % de 200 = 20 €, donc 200 + 20 = 220 €."},
+{mat:"F",theme:"Pourcentages",comp:"Calculer",diff:2,q:"Un article à 80 € est soldé à −25 %. Quel est le prix soldé ?",c:["65 €","60 €","55 €","75 €"],a:1,e:"25 % de 80 = 20 €, donc 80 − 20 = 60 €."},
+{mat:"F",theme:"Statistiques",comp:"Calculer",diff:2,q:"Quelle est la moyenne de 4, 6, 8 et 10 ?",c:["6","28","7","8"],a:2,e:"Moyenne = (4+6+8+10) ÷ 4 = 28 ÷ 4 = 7."},
+{mat:"F",theme:"Statistiques",comp:"Calculer",diff:3,q:"Quelle est la médiane de la série 3 ; 5 ; 7 ; 9 ; 11 ?",c:["5","9","35","7"],a:3,e:"5 valeurs rangées : la médiane est la valeur du milieu = 7."},
+{mat:"F",theme:"Statistiques",comp:"Calculer",diff:2,q:"Quelle est l'étendue de la série 3 ; 5 ; 7 ; 9 ; 11 ?",c:["14","11","8","7"],a:2,e:"Étendue = plus grande − plus petite = 11 − 3 = 8."},
+{mat:"F",theme:"Probabilités",comp:"Calculer",diff:2,q:"On lance un dé à 6 faces. Probabilité d'obtenir un nombre pair ?",c:["1/3","1/6","2/3","1/2"],a:3,e:"Pairs : 2, 4, 6 → 3 cas sur 6 = 1/2."},
+{mat:"F",theme:"Probabilités",comp:"Calculer",diff:1,q:"On lance un dé à 6 faces. Probabilité d'obtenir 6 ?",c:["1/2","6","1/3","1/6"],a:3,e:"Un seul cas favorable sur 6 résultats équiprobables : 1/6."},
+{mat:"F",theme:"Fonctions",comp:"Calculer",diff:2,q:"Soit f(x) = 2x + 1. Combien vaut f(3) ?",c:["5","6","7","9"],a:2,e:"f(3) = 2×3 + 1 = 7."},
+{mat:"F",theme:"Fonctions",comp:"Notion",diff:2,q:"La fonction f(x) = 3x est une fonction…",c:["du second degré","affine non linéaire","constante","linéaire"],a:3,e:"De la forme f(x)=ax (a=3, sans constante) : fonction linéaire (graphe passant par l'origine)."},
+{mat:"F",theme:"Fonctions",comp:"Notion",diff:2,q:"La représentation graphique de f(x) = 2x + 5 est…",c:["une parabole","une droite","un cercle","une courbe quelconque"],a:1,e:"Une fonction affine (ax + b) est représentée par une droite."},
+{mat:"G",theme:"Pythagore",comp:"Calculer",diff:2,q:"Les côtés de l'angle droit mesurent 3 cm et 4 cm. Quelle est l'hypoténuse ?",c:["5 cm","6 cm","7 cm","12 cm"],a:0,e:"Pythagore : h² = 3² + 4² = 25, donc h = 5 cm."},
+{mat:"G",theme:"Pythagore",comp:"Calculer",diff:2,q:"Les côtés de l'angle droit mesurent 6 cm et 8 cm. L'hypoténuse mesure…",c:["10 cm","12 cm","48 cm","14 cm"],a:0,e:"h² = 6² + 8² = 100, donc h = 10 cm."},
+{mat:"G",theme:"Pythagore",comp:"Raisonner",diff:3,q:"Un triangle a des côtés de 5, 12 et 13 cm. Est-il rectangle ?",c:["seulement si isocèle","impossible à dire","oui","non"],a:2,e:"13² = 169 et 5² + 12² = 169 : l'égalité est vérifiée, le triangle est rectangle (réciproque de Pythagore)."},
+{mat:"G",theme:"Thalès",comp:"Calculer",diff:3,q:"Configuration de Thalès : AM/AB = 1/3 et AB = 12 cm. Combien vaut AM ?",c:["3 cm","36 cm","4 cm","6 cm"],a:2,e:"AM = (1/3) × 12 = 4 cm."},
+{mat:"G",theme:"Trigonométrie",comp:"Notion",diff:2,q:"Dans un triangle rectangle, le cosinus d'un angle aigu est égal à…",c:["opposé ÷ adjacent","hypoténuse ÷ adjacent","opposé ÷ hypoténuse","adjacent ÷ hypoténuse"],a:3,e:"CAH : cosinus = côté adjacent ÷ hypoténuse."},
+{mat:"G",theme:"Trigonométrie",comp:"Notion",diff:2,q:"Le sinus d'un angle aigu (triangle rectangle) est…",c:["hypoténuse ÷ opposé","adjacent ÷ hypoténuse","opposé ÷ adjacent","opposé ÷ hypoténuse"],a:3,e:"SOH : sinus = côté opposé ÷ hypoténuse."},
+{mat:"G",theme:"Transformations",comp:"Notion",diff:2,q:"Une translation transforme une figure en…",c:["la faisant glisser sans tourner","la déformant","la faisant tourner","l'agrandissant"],a:0,e:"La translation fait glisser la figure (direction, sens, longueur) sans la tourner ni la déformer."},
+{mat:"G",theme:"Transformations",comp:"Notion",diff:2,q:"Une rotation est définie par…",c:["un rapport","un vecteur","un centre, un angle et un sens","une droite"],a:2,e:"Une rotation tourne la figure autour d'un centre, d'un angle, dans un sens donné."},
+{mat:"G",theme:"Angles",comp:"Notion",diff:2,q:"Deux parallèles coupées par une sécante : les angles alternes-internes sont…",c:["supplémentaires","égaux","complémentaires","droits"],a:1,e:"Avec deux droites parallèles, les angles alternes-internes sont égaux."},
+{mat:"G",theme:"Angles",comp:"Calculer",diff:1,q:"Dans un triangle, deux angles mesurent 50° et 60°. Le troisième mesure…",c:["110°","80°","50°","70°"],a:3,e:"La somme des angles d'un triangle est 180° : 180 − 50 − 60 = 70°."},
+{mat:"M",theme:"Aires",comp:"Calculer",diff:1,q:"Aire d'un rectangle de 5 cm sur 3 cm ?",c:["15 cm²","16 cm²","8 cm²","30 cm²"],a:0,e:"Aire = longueur × largeur = 5 × 3 = 15 cm²."},
+{mat:"M",theme:"Aires",comp:"Calculer",diff:2,q:"Aire d'un triangle de base 6 cm et hauteur 4 cm ?",c:["24 cm²","10 cm²","20 cm²","12 cm²"],a:3,e:"Aire = (base × hauteur) ÷ 2 = (6 × 4) ÷ 2 = 12 cm²."},
+{mat:"M",theme:"Aires",comp:"Calculer",diff:3,q:"Aire d'un disque de rayon 10 cm (π ≈ 3,14) ?",c:["62,8 cm²","314 cm²","31,4 cm²","100 cm²"],a:1,e:"Aire = π × r² = 3,14 × 10² = 314 cm²."},
+{mat:"M",theme:"Périmètres",comp:"Calculer",diff:2,q:"Périmètre d'un cercle de rayon 5 cm (π ≈ 3,14) ?",c:["31,4 cm","10 cm","15,7 cm","78,5 cm"],a:0,e:"Périmètre = 2 × π × r = 2 × 3,14 × 5 = 31,4 cm."},
+{mat:"M",theme:"Volumes",comp:"Calculer",diff:2,q:"Volume d'un cube d'arête 3 cm ?",c:["9 cm³","27 cm³","54 cm³","18 cm³"],a:1,e:"Volume = arête³ = 3³ = 27 cm³."},
+{mat:"M",theme:"Volumes",comp:"Calculer",diff:2,q:"Volume d'un pavé droit de 2 cm × 3 cm × 4 cm ?",c:["18 cm³","12 cm³","9 cm³","24 cm³"],a:3,e:"Volume = L × l × h = 2 × 3 × 4 = 24 cm³."},
+{mat:"M",theme:"Volumes",comp:"Calculer",diff:3,q:"Volume d'un cylindre de rayon 2 cm et hauteur 10 cm (π ≈ 3,14) ?",c:["40 cm³","62,8 cm³","125,6 cm³","251,2 cm³"],a:2,e:"Volume = π × r² × h = 3,14 × 4 × 10 = 125,6 cm³."},
+{mat:"M",theme:"Conversions",comp:"Calculer",diff:1,q:"Combien de mètres dans 2,5 km ?",c:["25000 m","25 m","2500 m","250 m"],a:2,e:"1 km = 1000 m, donc 2,5 km = 2500 m."},
+{mat:"M",theme:"Conversions",comp:"Calculer",diff:1,q:"Combien de mL dans 3 L ?",c:["3000 mL","300 mL","30000 mL","30 mL"],a:0,e:"1 L = 1000 mL, donc 3 L = 3000 mL."},
+{mat:"M",theme:"Conversions",comp:"Calculer",diff:2,q:"Combien de minutes dans 2 h 15 min ?",c:["135 min","215 min","150 min","75 min"],a:0,e:"2 h = 120 min, + 15 = 135 min."},
+{mat:"M",theme:"Vitesse",comp:"Calculer",diff:2,q:"Une voiture parcourt 150 km en 2 h. Sa vitesse moyenne ?",c:["100 km/h","75 km/h","50 km/h","300 km/h"],a:1,e:"Vitesse = distance ÷ temps = 150 ÷ 2 = 75 km/h."},
+{mat:"M",theme:"Agrandissement-réduction",comp:"Raisonner",diff:3,q:"On agrandit un solide avec un coefficient 2. Son volume est multiplié par…",c:["6","8","4","2"],a:1,e:"Les volumes sont multipliés par le cube du coefficient : 2³ = 8."},
+{mat:"M",theme:"Conversions",comp:"Calculer",diff:3,q:"Combien de cm² dans 1 m² ?",c:["10000","1000","100000","100"],a:0,e:"1 m = 100 cm, donc 1 m² = 100 × 100 = 10 000 cm²."},
+{mat:"A",theme:"Algorithmique",comp:"Raisonner",diff:2,q:"En Scratch, « répéter 4 fois : avancer de 100, tourner de 90° » trace…",c:["un triangle","un cercle","une ligne","un carré"],a:3,e:"4 côtés égaux et 4 angles de 90° : le lutin trace un carré."},
+{mat:"A",theme:"Algorithmique",comp:"Notion",diff:1,q:"En programmation, une variable sert à…",c:["faire tourner le lutin","dessiner","effacer l'écran","stocker une valeur"],a:3,e:"Une variable est une « boîte » qui mémorise une valeur que l'on peut lire et modifier."},
+{mat:"A",theme:"Algorithmique",comp:"Notion",diff:2,q:"Un bloc « si … alors … » sert à…",c:["ralentir le programme","colorier","exécuter une action seulement si une condition est vraie","répéter une action"],a:2,e:"L'instruction conditionnelle n'exécute l'action que si la condition est vérifiée."},
+{mat:"A",theme:"Algorithmique",comp:"Raisonner",diff:2,q:"En Scratch, « aller à x: 0 y: 0 » place le lutin…",c:["en haut à gauche","en bas à droite","hors de l'écran","au centre de la scène"],a:3,e:"Le point (0 ; 0) est le centre de la scène (origine du repère)."}
+];
+
+/* ============ DANS L'ORDRE (ranger des nombres / ordonner un calcul) ============ */
+const FRISE = [
+{titre:"Range ces nombres dans l'ordre croissant",kind:"nombre",ev:[{t:"−3",d:-3},{t:"−1/2",d:-0.5},{t:"0,75",d:0.75},{t:"2",d:2}]},
+{titre:"Range ces fractions dans l'ordre croissant",kind:"nombre",ev:[{t:"1/4",d:0.25},{t:"1/2",d:0.5},{t:"2/3",d:0.6667},{t:"3/4",d:0.75}]},
+{titre:"Range ces puissances dans l'ordre croissant",kind:"nombre",ev:[{t:"2⁰",d:1},{t:"2²",d:4},{t:"2³",d:8},{t:"2⁵",d:32}]},
+{titre:"Range ces nombres dans l'ordre croissant",kind:"nombre",ev:[{t:"−2,5",d:-2.5},{t:"−2",d:-2},{t:"3/2",d:1.5},{t:"√9",d:3}]},
+{titre:"Remets dans l'ordre la résolution de 3x + 5 = 20",kind:"etape",ev:[{t:"3x + 5 = 20",d:1},{t:"3x = 20 − 5",d:2},{t:"3x = 15",d:3},{t:"x = 15 ÷ 3 = 5",d:4}]},
+{titre:"Remets dans l'ordre le calcul de 2 + 3 × 4²",kind:"etape",ev:[{t:"2 + 3 × 4²",d:1},{t:"= 2 + 3 × 16",d:2},{t:"= 2 + 48",d:3},{t:"= 50",d:4}]},
+{titre:"Range ces fractions dans l'ordre croissant",kind:"nombre",ev:[{t:"1/4",d:0.25},{t:"1/2",d:0.5},{t:"3/4",d:0.75},{t:"1",d:1}]},
+{titre:"Range ces nombres relatifs dans l'ordre croissant",kind:"nombre",ev:[{t:"−10",d:-10},{t:"−2",d:-2},{t:"0",d:0},{t:"3",d:3},{t:"7",d:7}]},
+{titre:"Range ces longueurs dans l'ordre croissant",kind:"mesure",ev:[{t:"5 mm",d:5},{t:"2 cm",d:20},{t:"1 dm",d:100},{t:"1 m",d:1000}]},
+{titre:"Remets dans l'ordre les étapes pour résoudre un problème",kind:"etape",ev:[{t:"lire l'énoncé",d:1},{t:"repérer les données",d:2},{t:"poser le calcul",d:3},{t:"vérifier le résultat",d:4}]}
+];
+
+/* ============ RELIER (calcul / écriture ↔ résultat) ============ */
+const MATCH = [
+{titre:"Relie chaque calcul à son résultat",pairs:[["2³","8"],["5²","25"],["√49","7"],["(−3)²","9"]]},
+{titre:"Relie chaque expression à sa forme développée",pairs:[["(x + 2)²","x² + 4x + 4"],["(x − 1)²","x² − 2x + 1"],["(x + 3)(x − 3)","x² − 9"],["2(x + 5)","2x + 10"]]},
+{titre:"Relie chaque nombre à son écriture décimale",pairs:[["10³","1000"],["10⁻²","0,01"],["3 × 10²","300"],["2⁴","16"]]},
+{titre:"Relie chaque figure à sa formule d'aire ou de volume",pairs:[["aire du rectangle","L × l"],["aire du triangle","(b × h) ÷ 2"],["aire du disque","π × r²"],["volume du cube","arête³"]]},
+{titre:"Relie chaque nombre à sa nature",pairs:[["7","un nombre premier"],["12","un nombre pair"],["1/2","une fraction"],["−3","un relatif négatif"]]},
+{titre:"Relie chaque mot au bon symbole",pairs:[["la somme","+"],["la différence","−"],["le produit","×"],["le quotient","÷"]]}
+];
+
+/* ============ VRAI OU FAUX (affirmations à juger ; bon:true = VRAI) ============ */
+const DCKIT = [
+{verbe:"Vrai ou faux",sujet:"Soit un triangle ABC rectangle en A.",idees:[{t:"BC est l'hypoténuse",bon:true},{t:"AB² + AC² = BC²",bon:true},{t:"BC² = AB² − AC²",bon:false},{t:"L'angle droit est en A",bon:true},{t:"cos(B) = AB / BC",bon:true},{t:"On utilise ici le théorème de Thalès",bon:false}]},
+{verbe:"Vrai ou faux",sujet:"On considère la fonction f(x) = 2x.",idees:[{t:"f est une fonction linéaire",bon:true},{t:"f(3) = 6",bon:true},{t:"Sa représentation passe par l'origine",bon:true},{t:"f(0) = 2",bon:false},{t:"Le coefficient directeur est 2",bon:true},{t:"f est une fonction affine avec b ≠ 0",bon:false}]},
+{verbe:"Vrai ou faux",sujet:"Un article coûte 50 € puis subit une réduction de 10 %.",idees:[{t:"La réduction est de 5 €",bon:true},{t:"Le nouveau prix est 45 €",bon:true},{t:"Multiplier par 0,9 donne le nouveau prix",bon:true},{t:"Le nouveau prix est 40 €",bon:false},{t:"Baisser de 10 % puis augmenter de 10 % redonne 50 €",bon:false}]},
+{verbe:"Vrai ou faux",sujet:"On lance un dé équilibré à six faces.",idees:[{t:"La probabilité d'obtenir 3 est 1/6",bon:true},{t:"La probabilité d'obtenir un nombre pair est 1/2",bon:true},{t:"La probabilité d'obtenir un nombre inférieur ou égal à 6 est 1",bon:true},{t:"La probabilité d'obtenir 7 est 1/6",bon:false},{t:"Les six issues sont équiprobables",bon:true}]},
+{verbe:"Vrai ou faux",sujet:"On agrandit un rectangle avec un coefficient k = 3.",idees:[{t:"Les longueurs sont multipliées par 3",bon:true},{t:"L'aire est multipliée par 9",bon:true},{t:"Les angles sont conservés",bon:true},{t:"Le périmètre est multiplié par 3",bon:true},{t:"L'aire est multipliée par 3",bon:false}]},
+{verbe:"Vrai ou faux",sujet:"À propos des nombres et du calcul.",idees:[{t:"Le produit de deux nombres négatifs est positif",bon:true},{t:"2³ = 8",bon:true},{t:"Pour additionner deux fractions, on met le même dénominateur",bon:true},{t:"5x + 3x = 8x",bon:true},{t:"2 + 3 × 4 = 20",bon:false},{t:"10³ = 30",bon:false}]},
+{verbe:"Vrai ou faux",sujet:"À propos de la géométrie.",idees:[{t:"La somme des angles d'un triangle est 180°",bon:true},{t:"Le théorème de Pythagore s'applique dans un triangle rectangle",bon:true},{t:"Une translation ne déforme pas la figure",bon:true},{t:"cosinus = adjacent ÷ hypoténuse",bon:true},{t:"Le carré a trois côtés",bon:false},{t:"sinus = adjacent ÷ hypoténuse",bon:false}]},
+{verbe:"Vrai ou faux",sujet:"À propos des grandeurs et mesures.",idees:[{t:"1 km = 1000 m",bon:true},{t:"Aire du rectangle = longueur × largeur",bon:true},{t:"Volume du cube = arête³",bon:true},{t:"En agrandissant avec un coefficient 2, l'aire est multipliée par 4",bon:true},{t:"1 L = 100 mL",bon:false},{t:"Vitesse = distance × temps",bon:false}]},
+{verbe:"Vrai ou faux",sujet:"À propos des données et des fonctions.",idees:[{t:"La moyenne est la somme divisée par l'effectif",bon:true},{t:"Une probabilité est comprise entre 0 et 1",bon:true},{t:"f(x) = ax est une fonction linéaire",bon:true},{t:"L'étendue = maximum − minimum",bon:true},{t:"20 % de 50 = 20",bon:false},{t:"Une fonction affine est représentée par une parabole",bon:false}]}
+];
+
+/* ============ PROBLÈMES & SCRATCH (situation + meilleure réponse) ============ */
+const EMC = [
+{sit:"Une voiture parcourt 180 km en 3 heures, à vitesse constante.",q:"Quelle est sa vitesse moyenne ?",c:["60 km/h","90 km/h","30 km/h","540 km/h"],a:0,e:"Vitesse = distance ÷ temps = 180 ÷ 3 = 60 km/h.",principe:"Vitesse moyenne"},
+{sit:"Un pull coûte 40 €. Il est soldé à −25 %.",q:"Quel est son prix soldé ?",c:["15 €","35 €","30 €","32 €"],a:2,e:"Réduction : 25 % de 40 = 10 €. Prix soldé : 40 − 10 = 30 € (ou 40 × 0,75 = 30).",principe:"Pourcentages"},
+{sit:"Un aquarium a la forme d'un pavé droit de 50 cm × 30 cm × 40 cm.",q:"Quel est son volume en litres ? (1 L = 1 000 cm³)",c:["6 L","60 L","120 L","600 L"],a:1,e:"Volume = 50 × 30 × 40 = 60 000 cm³ = 60 L.",principe:"Volume du pavé droit"},
+{sit:"À un contrôle, Léa a obtenu les notes : 8 ; 12 ; 14 ; 16 ; 10.",q:"Quelle est sa moyenne ?",c:["10","12","60","14"],a:1,e:"(8 + 12 + 14 + 16 + 10) ÷ 5 = 60 ÷ 5 = 12.",principe:"Moyenne"},
+{sit:"Un lutin Scratch exécute : « répéter 4 fois [ avancer de 50 ; tourner de 90° ] ».",q:"Quelle figure trace-t-il ?",c:["un cercle","un triangle","un carré","une étoile"],a:2,e:"4 côtés égaux et 4 angles de 90° : c'est un carré.",principe:"Algorithmique (Scratch)"},
+{sit:"Un programme : « x prend la valeur 5 ; répéter 3 fois [ x prend la valeur x + 4 ] ».",q:"Quelle est la valeur finale de x ?",c:["9","12","20","17"],a:3,e:"x : 5 → 9 → 13 → 17. À la fin, x = 17.",principe:"Algorithmique (variables)"},
+{sit:"Un livre coûte 15 €. Il est soldé à −20 %.",q:"Quel est le prix soldé ?",c:["18 €","13 €","3 €","12 €"],a:3,e:"20 % de 15 = 3 €, donc 15 − 3 = 12 €.",principe:"Pourcentages"},
+{sit:"Un rectangle a une longueur de 8 cm et une largeur de 5 cm.",q:"Quel est son périmètre ?",c:["40 cm","26 cm","80 cm","13 cm"],a:1,e:"Périmètre = 2 × (L + l) = 2 × (8 + 5) = 26 cm.",principe:"Périmètre"},
+{sit:"Une recette pour 4 personnes demande 200 g de farine.",q:"Combien faut-il pour 6 personnes ?",c:["250 g","350 g","300 g","400 g"],a:2,e:"Proportionnalité : 200 ÷ 4 = 50 g par personne, × 6 = 300 g.",principe:"Proportionnalité"},
+{sit:"Un triangle rectangle a une hypoténuse de 13 cm et un côté de 5 cm.",q:"Quelle est la longueur de l'autre côté ?",c:["12 cm","18 cm","8 cm","144 cm"],a:0,e:"Pythagore : côté² = 13² − 5² = 169 − 25 = 144, donc côté = 12 cm.",principe:"Théorème de Pythagore"},
+{sit:"On lance une pièce de monnaie équilibrée.",q:"Quelle est la probabilité d'obtenir « pile » ?",c:["1/2","0","1/4","1"],a:0,e:"Deux issues équiprobables (pile / face) : P(pile) = 1/2.",principe:"Probabilités"},
+{sit:"Une cuve contient 1 200 L. On en retire 30 %.",q:"Combien de litres a-t-on retirés ?",c:["400 L","840 L","300 L","360 L"],a:3,e:"30 % de 1 200 = 0,30 × 1 200 = 360 L.",principe:"Pourcentages"}
+];
+
+/* ====================================================================
+   HELPERS
+   ==================================================================== */
+function $(sel,root){return (root||document).querySelector(sel);}
+function elt(tag,cls,html){var e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;}
+function app(){return document.getElementById("app");}
+function clear(node){while(node.firstChild)node.removeChild(node.firstChild);}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function pick(a,n){return shuffle(a).slice(0,n);}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+var TEAM_COLORS=["var(--t1)","var(--t2)","var(--t3)","var(--t4)"];
+var TEAM_HEX=["#d6453a","#2f74c0","#34935f","#e2a317"];
+var MAT_LABEL={N:"Nombres & calcul",F:"Données & fonctions",G:"Géométrie",M:"Grandeurs & mesures",A:"Algorithmique"};
+var FRNAME={"Germany":"l’Allemagne","Spain":"l’Espagne","Italy":"l’Italie","Belgium":"la Belgique","Switzerland":"la Suisse","United Kingdom":"le Royaume-Uni","United States of America":"les États-Unis","China":"la Chine","India":"l’Inde","Brazil":"le Brésil","Russia":"la Russie","France":"la France"};
+
+/* ---------- Web Audio (synthétisé, aucun fichier) ---------- */
+var AC=null, audioOn=true;
+function initAudio(){ if(AC)return; try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AC=null; } }
+function beep(freq,start,dur,type,vol){
+  if(!AC||!audioOn)return;
+  try{
+    var o=AC.createOscillator(), g=AC.createGain();
+    o.type=type||"sine"; o.frequency.value=freq;
+    o.connect(g); g.connect(AC.destination);
+    var t=AC.currentTime+(start||0);
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(vol||0.18,t+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.start(t); o.stop(t+dur+0.02);
+  }catch(e){}
+}
+function sGood(){ beep(660,0,0.12,"triangle",0.2); beep(990,0.10,0.18,"triangle",0.2); }
+function sBad(){ beep(180,0,0.28,"sawtooth",0.16); }
+function sTick(){ beep(440,0,0.05,"square",0.07); }
+function sWin(){ var n=[523,659,784,1046]; for(var i=0;i<n.length;i++) beep(n[i],i*0.12,0.5,"triangle",0.18); }
+function sWager(){ beep(330,0,0.1,"square",0.14); beep(440,0.08,0.1,"square",0.14); }
+
+/* ---------- Confettis (canvas, hand-codé) ---------- */
+var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function confetti(){
+  if(reduce)return;
+  var cv=document.getElementById("confetti"); cv.classList.remove("hidden");
+  var ctx=cv.getContext("2d"); cv.width=innerWidth; cv.height=innerHeight;
+  var cols=["#ecb73c","#d6453a","#2f74c0","#34935f","#ffffff"]; var P=[];
+  for(var i=0;i<150;i++)P.push({x:Math.random()*cv.width,y:-20-Math.random()*cv.height*0.4,
+    vx:(Math.random()-0.5)*4,vy:2+Math.random()*4,s:5+Math.random()*7,
+    c:cols[Math.floor(Math.random()*cols.length)],r:Math.random()*Math.PI,vr:(Math.random()-0.5)*0.3});
+  var t0=performance.now();
+  function frame(t){
+    ctx.clearRect(0,0,cv.width,cv.height);
+    for(var i=0;i<P.length;i++){var p=P[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.04;p.r+=p.vr;
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillStyle=p.c;ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6);ctx.restore();}
+    if(t-t0<3200)requestAnimationFrame(frame); else {ctx.clearRect(0,0,cv.width,cv.height);cv.classList.add("hidden");}
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ====================================================================
+   ÉTAT DE JEU
+   ==================================================================== */
+var ROUND_DEFS=[
+  {id:"sprint",ic:"⚡",tt:"Sprint calcul",ds:"Calcul mental, fractions, puissances, notions"},
+  {id:"cartes",ic:"📍",tt:"Le plan repéré",ds:"Place et lis des points dans un repère"},
+  {id:"frise", ic:"📊",tt:"Dans l'ordre",ds:"Ranger des nombres, ordonner un calcul"},
+  {id:"dc",    ic:"✅",tt:"Vrai ou faux",ds:"Juge des affirmations mathématiques"},
+  {id:"emc",   ic:"🧩",tt:"Problèmes & Scratch",ds:"Situations concrètes et algorithmique"},
+  {id:"boss",  ic:"🎯",tt:"Le tapis final",ds:"Mise tes points : double ou rien !"}
+];
+var game=null;
+function newGame(teams,rounds,showExp,solo){
+  game={ teams:[], rounds:rounds, ri:-1, active:0, showExp:showExp, solo:!!solo };
+  for(var i=0;i<teams.length;i++){
+    game.teams.push({name:teams[i],hex:TEAM_HEX[i],col:TEAM_COLORS[i],score:0,
+      ok:0,tot:0,byTheme:{},byComp:{}});
+  }
+}
+function rotate(){ if(game.solo)return; game.active=(game.active+1)%game.teams.length; }
+function activeTeam(){ return game.teams[game.active]; }
+function addScore(team,pts){ team.score+=pts; if(team.score<0)team.score=0; }
+function record(team,item,correct){
+  team.tot++; if(correct)team.ok++;
+  if(item&&item.theme){ var th=team.byTheme[item.theme]||{ok:0,tot:0}; th.tot++; if(correct)th.ok++; team.byTheme[item.theme]=th; }
+  if(item&&item.comp){ var c=team.byComp[item.comp]||{ok:0,tot:0}; c.tot++; if(correct)c.ok++; team.byComp[item.comp]=c; }
+}
+
+/* ---------- Contexte d'interaction clavier ---------- */
+var IC={ selects:[], primary:null };
+function resetIC(){ IC.selects=[]; IC.primary=null; }
+document.addEventListener("keydown",function(e){
+  if(e.key==="?"||(e.key==="/"&&e.shiftKey)){ e.preventDefault(); toggleHelp(); return; }
+  if(e.key==="Escape"){ var o=$(".overlay"); if(o){o.remove();return;} }
+  var ov=$(".overlay"); if(ov)return;
+  if(e.key===" "||e.code==="Space"){ if(IC.primary){ e.preventDefault(); IC.primary(); } return; }
+  if(/^[1-9]$/.test(e.key)){ var idx=parseInt(e.key,10)-1; if(IC.selects[idx]){ e.preventDefault(); IC.selects[idx](); } return; }
+  if(e.key==="t"||e.key==="T"){ if(game&&game.ri>=0){ rotate(); renderHUD(); } return; }
+  if(e.key==="n"||e.key==="N"){ if(game&&game.ri>=0) confirmSkipRound(); return; }
+});
+
+/* ====================================================================
+   ÉCRAN D'ACCUEIL / RÉGLAGES
+   ==================================================================== */
+var setup={ nTeams:3, names:["Équipe 1","Équipe 2","Équipe 3","Équipe 4"], rounds:["sprint","cartes","frise","dc","emc","boss"], showExp:true };
+
+function renderSetup(){
+  resetIC(); var a=app(); clear(a);
+  var wrap=elt("div","hero-wrap");
+
+  var hero=elt("div","card");
+  hero.innerHTML=
+    '<div class="eyebrow">Brevet 2026 · Mathématiques</div>'+
+    '<h1 class="headline">Le Grand Défi <span class="pop">Brevet</span></h1>'+
+    '<p class="sub">Un tournoi de révision à projeter en classe. Les équipes s\'affrontent sur six manches qui couvrent le programme de maths de 3e : calcul, repère, rangement, vrai/faux et problèmes. Réponds vite, vise le tapis final.</p>';
+  wrap.appendChild(hero);
+
+  var grid=elt("div","setup-grid");
+
+  /* colonne équipes */
+  var cTeams=elt("div","card");
+  cTeams.innerHTML='<div class="eyebrow">Les équipes</div>';
+  var ctr=elt("div","counter");
+  ctr.style.margin="10px 0 16px";
+  ctr.innerHTML='<button id="tm">−</button><span class="val" id="tv">'+setup.nTeams+'</span><button id="tp">+</button>'+
+    '<span class="muted" style="margin-left:8px">équipes (2 à 4)</span>';
+  cTeams.appendChild(ctr);
+  var rows=elt("div"); rows.id="teamRows"; cTeams.appendChild(rows);
+  grid.appendChild(cTeams);
+
+  /* colonne manches */
+  var cR=elt("div","card");
+  cR.innerHTML='<div class="eyebrow">Le programme de la partie</div>'+
+    '<p class="muted" style="margin:8px 0 4px;font-size:.9rem">Tout est sélectionné pour une heure complète. Désélectionne une manche pour la retirer.</p>';
+  var rl=elt("div","rounds-list"); rl.id="roundsList";
+  cR.appendChild(rl);
+  grid.appendChild(cR);
+
+  wrap.appendChild(grid);
+
+  var bar=elt("div","toolbar");
+  var start=elt("button","btn primary","▶  Lancer le défi");
+  start.style.fontSize="1.25rem"; start.style.padding="16px 30px";
+  start.onclick=function(){ startFromSetup(); };
+  var help=elt("button","btn ghost small","Comment jouer ?");
+  help.onclick=toggleHelp;
+  var back=elt("button","btn ghost small","← Modes"); back.onclick=renderHome;
+  bar.appendChild(back);
+  bar.appendChild(start);
+  var sp=elt("span","hud-spacer"); bar.appendChild(sp);
+  bar.appendChild(help);
+  wrap.appendChild(bar);
+
+  wrap.appendChild(foot());
+  a.appendChild(wrap);
+
+  drawTeamRows(); drawRounds();
+  $("#tm").onclick=function(){ if(setup.nTeams>2){setup.nTeams--; $("#tv").textContent=setup.nTeams; drawTeamRows();} };
+  $("#tp").onclick=function(){ if(setup.nTeams<4){setup.nTeams++; $("#tv").textContent=setup.nTeams; drawTeamRows();} };
+}
+function drawTeamRows(){
+  var rows=$("#teamRows"); clear(rows);
+  for(var i=0;i<setup.nTeams;i++){
+    (function(i){
+      var r=elt("div","team-row");
+      r.innerHTML='<span class="swatch" style="--c:'+TEAM_COLORS[i]+'"></span>';
+      var inp=elt("input"); inp.type="text"; inp.value=setup.names[i]; inp.maxLength=22;
+      inp.oninput=function(){ setup.names[i]=inp.value; };
+      r.appendChild(inp); rows.appendChild(r);
+    })(i);
+  }
+}
+function drawRounds(){
+  var rl=$("#roundsList"); clear(rl);
+  for(var i=0;i<ROUND_DEFS.length;i++){
+    (function(def){
+      var on=setup.rounds.indexOf(def.id)>=0;
+      var b=elt("button","round-toggle"+(on?" on":""));
+      b.innerHTML='<span class="ic">'+def.ic+'</span>'+
+        '<span><span class="tt">'+def.tt+'</span><br><span class="ds">'+def.ds+'</span></span>'+
+        '<span class="chk">'+(on?"✓":"")+'</span>';
+      b.onclick=function(){
+        var idx=setup.rounds.indexOf(def.id);
+        if(idx>=0){ if(setup.rounds.length>1) setup.rounds.splice(idx,1); }
+        else setup.rounds.push(def.id);
+        drawRounds();
+      };
+      rl.appendChild(b);
+    })(ROUND_DEFS[i]);
+  }
+}
+function startFromSetup(){
+  initAudio();
+  var names=setup.names.slice(0,setup.nTeams).map(function(n,i){return (n&&n.trim())?n.trim():("Équipe "+(i+1));});
+  /* remettre les manches dans l'ordre officiel */
+  var ordered=ROUND_DEFS.map(function(d){return d.id;}).filter(function(id){return setup.rounds.indexOf(id)>=0;});
+  newGame(names,ordered,setup.showExp);
+  nextRound();
+}
+
+/* ====================================================================
+   HUD + SCOREBOARD
+   ==================================================================== */
+function roundDef(id){ for(var i=0;i<ROUND_DEFS.length;i++)if(ROUND_DEFS[i].id===id)return ROUND_DEFS[i]; return null; }
+function renderShell(){
+  var a=app(); clear(a);
+  var hud=elt("div"); hud.id="hud"; a.appendChild(hud);
+  var tb=elt("div","timer-bar hidden"); tb.id="timerBar"; tb.innerHTML='<i></i>'; a.appendChild(tb);
+  var board=elt("div","board"); board.id="board"; a.appendChild(board);
+  var content=elt("div"); content.id="content"; a.appendChild(content);
+  a.appendChild(foot());
+  renderHUD();
+}
+function renderHUD(){
+  var hud=$("#hud"); if(!hud)return; clear(hud);
+  var def=roundDef(game.rounds[game.ri])||{tt:"",ic:""};
+  var badge=elt("div","round-badge");
+  if(game.solo){
+    badge.innerHTML=(game.rounds.length>1?'<span class="num">ÉTAPE '+(game.ri+1)+'/'+game.rounds.length+'</span>':'')+
+      '<span class="nm">'+def.ic+' '+def.tt+'</span>';
+  } else {
+    badge.innerHTML='<span class="num">MANCHE '+(game.ri+1)+'/'+game.rounds.length+'</span>'+
+      '<span class="nm">'+def.ic+' '+def.tt+'</span>';
+  }
+  hud.appendChild(badge);
+  hud.appendChild(elt("span","hud-spacer"));
+  var tm=elt("div","timer hidden"); tm.id="timer"; tm.textContent="--"; hud.appendChild(tm);
+  drawBoard();
+}
+function drawBoard(){
+  var b=$("#board"); if(!b)return; clear(b);
+  if(game.solo){
+    var st=game.teams[0];
+    var sc=elt("div","team-chip solo"); sc.style.setProperty("--c",st.col);
+    sc.innerHTML='<span class="bar"></span><div class="nm">👤 '+esc(st.name)+'</div><div class="sc">'+st.score+' pts</div>';
+    b.appendChild(sc); return;
+  }
+  for(var i=0;i<game.teams.length;i++){
+    var t=game.teams[i];
+    var c=elt("div","team-chip"+(i===game.active?" active":""));
+    c.style.setProperty("--c",t.col);
+    c.innerHTML='<span class="bar"></span><div class="nm">'+esc(t.name)+'</div><div class="sc">'+t.score+'</div>';
+    b.appendChild(c);
+  }
+}
+function bumpScore(){ /* petite animation du tableau */ drawBoard(); }
+
+/* ---------- Timer ---------- */
+var timer={ id:null, total:0, left:0, onEnd:null };
+function startTimer(sec,onEnd){
+  stopTimer();
+  var tm=$("#timer"), tb=$("#timerBar");
+  if(tm)tm.classList.remove("hidden"); if(tb)tb.classList.remove("hidden");
+  timer.total=sec; timer.left=sec; timer.onEnd=onEnd;
+  paintTimer();
+  timer.id=setInterval(function(){
+    timer.left--; paintTimer();
+    if(timer.left<=5&&timer.left>0)sTick();
+    if(timer.left<=0){ stopTimer(); if(timer.onEnd)timer.onEnd(); }
+  },1000);
+}
+function paintTimer(){
+  var tm=$("#timer"), tb=$("#timerBar");
+  if(tm){ tm.textContent=timer.left+"s"; tm.className="timer"+(timer.left<=10&&timer.left>5?" warn":"")+(timer.left<=5?" crit":""); }
+  if(tb){ var f=Math.max(0,timer.left/timer.total*100); $("i",tb).style.width=f+"%"; }
+}
+function stopTimer(){ if(timer.id){clearInterval(timer.id);timer.id=null;} var tm=$("#timer"),tb=$("#timerBar"); if(tm)tm.classList.add("hidden"); if(tb)tb.classList.add("hidden"); }
+function timerFrac(){ return timer.total?Math.max(0,timer.left/timer.total):0; }
+
+/* ---------- barre d'outils prof ---------- */
+function toolbar(skipLabel){
+  var bar=elt("div","toolbar");
+  var skip=elt("button","btn ghost small","⏭  "+(skipLabel||"Passer"));
+  skip.onclick=function(){ if(IC.primary)IC.primary(); };
+  var solo=game&&game.solo;
+  var nextR=elt("button","btn ghost small",solo?(game.rounds.length>1?"Étape suivante":"Terminer"):"Manche suivante");
+  nextR.onclick=solo?nextRound:confirmSkipRound;
+  var pause=elt("button","btn ghost small","⏸  Aide / Pause");
+  pause.onclick=toggleHelp;
+  bar.appendChild(skip);
+  bar.appendChild(elt("span","hud-spacer"));
+  bar.appendChild(nextR);
+  bar.appendChild(pause);
+  return bar;
+}
+function turnBanner(){
+  if(game.solo){ var s=elt("span"); s.style.display="none"; return s; }
+  var t=activeTeam();
+  var d=elt("div","turn-banner");
+  d.style.setProperty("--c",t.col);
+  d.innerHTML='<span class="turn-dot"></span> Au tour de <b style="margin-left:4px">'+esc(t.name)+'</b>';
+  return d;
+}
+
+/* ====================================================================
+   ENCHAÎNEMENT DES MANCHES
+   ==================================================================== */
+function nextRound(){
+  stopTimer();
+  game.ri++;
+  if(game.ri>=game.rounds.length){ showBilan(); return; }
+  roundIntro(game.rounds[game.ri]);
+}
+function roundIntro(id){
+  var def=roundDef(id);
+  renderShell();
+  var c=elt("div","card center");
+  var eyebrow=game.solo?(game.rounds.length>1?('Étape '+(game.ri+1)+' sur '+game.rounds.length):'Réviser seul'):('Manche '+(game.ri+1)+' sur '+game.rounds.length);
+  var intro=(game.solo&&SOLO_INTRO[id])?SOLO_INTRO[id]:ROUND_INTRO[id];
+  c.innerHTML='<div class="eyebrow">'+eyebrow+'</div>'+
+    '<div style="font-size:3.4rem;margin:6px 0">'+def.ic+'</div>'+
+    '<h2 class="headline" style="font-size:2.2rem">'+def.tt+'</h2>'+
+    '<p class="sub" style="margin:10px auto 0">'+intro+'</p>';
+  var go=elt("button","btn primary mt",game.solo?"Commencer  ▶":"Commencer la manche  ▶");
+  go.style.fontSize="1.15rem";
+  go.onclick=function(){ RUNNERS[id](); };
+  c.appendChild(go);
+  $("#content").appendChild(c);
+  resetIC(); IC.primary=function(){ go.click(); };
+}
+var ROUND_INTRO={
+  sprint:"Une question, quatre réponses, le chrono tourne. Chaque équipe répond à son tour. Plus c'est rapide, plus ça rapporte. Aucune pénalité : on ose !",
+  cartes:"Un repère orthonormé s'affiche. À l'équipe de cliquer au bon endroit pour placer un point, ou de lire ses coordonnées. Symétries et translations au programme.",
+  frise:"Des nombres ou des étapes de calcul sont mélangés. L'équipe les remet dans l'ordre. Un point par bonne place.",
+  dc:"Une affirmation mathématique : vraie ou fausse ? L'équipe juge chaque proposition. On entraîne le raisonnement et la justification.",
+  emc:"Un problème concret (vitesse, pourcentage, volume…) ou un script Scratch. L'équipe choisit la bonne réponse, puis on rappelle la méthode.",
+  boss:"Dernière ligne droite. Avant chaque question, l'équipe mise une partie de ses points. Bonne réponse : elle empoche la mise. Mauvaise : elle la perd. Tout peut basculer."
+};
+function confirmSkipRound(){
+  if($(".overlay"))return;
+  var ov=elt("div","overlay");
+  var s=elt("div","card sheet center");
+  s.innerHTML='<h2 class="headline" style="font-size:1.6rem">Passer à la manche suivante ?</h2>'+
+    '<p class="sub" style="margin:10px auto">Les points déjà marqués sont conservés.</p>';
+  var yes=elt("button","btn primary","Oui, manche suivante"); yes.style.margin="0 6px";
+  yes.onclick=function(){ ov.remove(); nextRound(); };
+  var no=elt("button","btn ghost","Continuer"); no.style.margin="0 6px";
+  no.style.color="var(--ink)"; no.style.borderColor="var(--line)";
+  no.onclick=function(){ ov.remove(); };
+  var box=elt("div","mt"); box.appendChild(yes); box.appendChild(no); s.appendChild(box);
+  ov.appendChild(s); document.body.appendChild(ov);
+}
+function toggleHelp(){
+  var ex=$(".overlay"); if(ex){ex.remove();return;}
+  var solo=game&&game.solo;
+  var ov=elt("div","overlay");
+  var s=elt("div","card sheet");
+  if(solo){
+    s.innerHTML='<div class="eyebrow">Réviser seul · aide</div>'+
+      '<h2 class="headline" style="font-size:1.7rem">Comment ça marche</h2>'+
+      '<p class="sub">Tu avances à ton rythme. Lis la question, clique ta réponse : la bonne réponse et l\'explication s\'affichent tout de suite. À la fin, tu vois ton score et les thèmes à revoir.</p>'+
+      '<div class="shortcuts mt">'+
+      '<span class="kbd">Espace</span><span>Voir la réponse, puis continuer</span>'+
+      '<span class="kbd">1</span><span>– <span class="kbd">4</span> &nbsp;Choisir une réponse au clavier</span>'+
+      '<span class="kbd">?</span><span>Afficher / masquer cette aide</span>'+
+      '</div>';
+  } else {
+    s.innerHTML='<div class="eyebrow">Mode projection · raccourcis</div>'+
+      '<h2 class="headline" style="font-size:1.7rem">Comment jouer</h2>'+
+      '<p class="sub">Branche l\'ordinateur au vidéoprojecteur. Une équipe joue à la fois (surlignée dans le tableau des scores). Toute la classe voit la question ; l\'équipe annonce sa réponse, tu cliques dessus, la correction s\'affiche.</p>'+
+      '<div class="shortcuts mt">'+
+      '<span class="kbd">Espace</span><span>Révéler la réponse, puis passer à la suite</span>'+
+      '<span class="kbd">1</span><span>– <span class="kbd">4</span> &nbsp;Choisir une réponse au clavier</span>'+
+      '<span class="kbd">T</span><span>Changer d\'équipe active (à la main)</span>'+
+      '<span class="kbd">N</span><span>Passer à la manche suivante</span>'+
+      '<span class="kbd">?</span><span>Afficher / masquer cette aide</span>'+
+      '</div>';
+  }
+  var close=elt("button","btn primary mt","Fermer"); close.onclick=function(){ov.remove();};
+  var rest=elt("button","btn ghost mt","↺ Revenir à l'accueil");
+  rest.style.marginLeft="8px"; rest.style.color="var(--ink)"; rest.style.borderColor="var(--line)";
+  rest.onclick=function(){ ov.remove(); stopTimer(); renderHome(); };
+  s.appendChild(close); s.appendChild(rest);
+  ov.appendChild(s); document.body.appendChild(ov);
+}
+function foot(){ var f=elt("div","foot","Le Grand Défi Brevet · révision DNB Mathématiques · fonctionne hors-ligne"); return f; }
+
+/* ====================================================================
+   CARTE QCM générique (sprint, EMC, boss)
+   ==================================================================== */
+function renderQCM(cfg){
+  resetIC();
+  var content=$("#content"); clear(content);
+  var card=elt("div","card");
+  card.appendChild(turnBanner());
+
+  if(cfg.tags&&cfg.tags.length){
+    var meta=elt("div","qmeta");
+    for(var i=0;i<cfg.tags.length;i++){ var tg=cfg.tags[i]; meta.appendChild(elt("span","tag "+(tg.cls||""),tg.txt)); }
+    card.appendChild(meta);
+  }
+  if(cfg.context){ var ctx=elt("div","dc-sujet"); ctx.innerHTML='<div class="txt" style="font-size:1.05rem">'+esc(cfg.context)+'</div>'; card.appendChild(ctx); }
+  card.appendChild(elt("div","qtext",esc(cfg.question)));
+
+  var grid=elt("div","choices"); var btns=[];
+  for(var i=0;i<cfg.choices.length;i++){
+    (function(i){
+      var b=elt("button","choice");
+      b.innerHTML='<span class="key">'+(i+1)+'</span>'+esc(cfg.choices[i]);
+      b.onclick=function(){ resolve(i); };
+      grid.appendChild(b); btns.push(b);
+      IC.selects[i]=function(){ if(!resolved)resolve(i); };
+    })(i);
+  }
+  card.appendChild(grid);
+  var fb=elt("div"); fb.id="fb"; card.appendChild(fb);
+  content.appendChild(card);
+  content.appendChild(toolbar("Sauter la question"));
+
+  var resolved=false;
+  if(cfg.timed){ startTimer(cfg.sec,function(){ if(!resolved)resolve(-1); }); }
+
+  IC.primary=function(){ if(!resolved)resolve(-1); };
+
+  function resolve(chosen){
+    if(resolved)return; resolved=true; stopTimer();
+    var correct=(chosen===cfg.answer);
+    var pts=0;
+    if(correct){ pts=cfg.base; if(cfg.speed){ pts+=Math.round(10*timerFrac()); } }
+    if(!correct&&cfg.lossOnWrong){ pts=-cfg.base; }
+    for(var i=0;i<btns.length;i++){ btns[i].setAttribute("disabled","disabled"); }
+    btns[cfg.answer].className="choice good";
+    if(chosen>=0&&!correct)btns[chosen].className="choice bad";
+    if(correct)sGood(); else sBad();
+
+    var fbox=$("#fb"); clear(fbox);
+    var line=elt("div","feedback-line "+(correct?"gain":"nogain"));
+    if(chosen===-1)line.innerHTML="⏱ Temps écoulé — "+(pts<0?(pts+" pts"):"0 pt");
+    else if(correct)line.innerHTML="✅ Bonne réponse  ·  +"+pts+" pts";
+    else line.innerHTML="❌ Raté"+(cfg.lossOnWrong?("  ·  "+pts+" pts"):"  ·  0 pt");
+    fbox.appendChild(line);
+    if(game.showExp&&cfg.exp){ var ex=elt("div","explain"+(correct?"":" ko")); ex.innerHTML=(cfg.principe?('<b>'+esc(cfg.principe)+'.</b> '):'')+esc(cfg.exp); fbox.appendChild(ex); }
+
+    addScore(activeTeam(),pts); bumpScore();
+    record(activeTeam(),cfg.item,correct);
+
+    IC.selects=[];
+    IC.primary=function(){ cfg.onDone(correct,pts); };
+    var cont=elt("button","btn primary mt",cfg.lastOne?"Voir le classement  🏁":"Continuer  ▶");
+    cont.onclick=function(){ cfg.onDone(correct,pts); };
+    fbox.appendChild(cont);
+  }
+}
+
+/* ====================================================================
+   MANCHE 1 — SPRINT REPÈRES
+   ==================================================================== */
+var RUNNERS={};
+RUNNERS.sprint=function(){
+  var qs=pick(QUIZ,Math.min(8,QUIZ.length));
+  var k=0;
+  function step(){
+    if(k>=qs.length){ nextRound(); return; }
+    var q=qs[k];
+    renderQCM({
+      item:q,
+      tags:[{cls:"mat "+q.mat,txt:MAT_LABEL[q.mat]},{txt:q.theme},{txt:q.comp}],
+      question:q.q, choices:q.c, answer:q.a, exp:q.e,
+      timed:!game.solo, sec:25, base:q.diff*10, speed:!game.solo,
+      onDone:function(){ k++; rotate(); renderHUD(); step(); }
+    });
+  }
+  step();
+};
+
+/* ====================================================================
+   MANCHE 5 — EMC SITUATION PRATIQUE
+   ==================================================================== */
+RUNNERS.emc=function(){
+  var qs=pick(EMC,Math.min(4,EMC.length));
+  var k=0;
+  function step(){
+    if(k>=qs.length){ nextRound(); return; }
+    var q=qs[k];
+    renderQCM({
+      item:{theme:q.principe,comp:"Résoudre"},
+      tags:[{cls:"mat M",txt:"PROBLÈME"},{txt:q.principe}],
+      context:q.sit, question:q.q, choices:q.c, answer:q.a, exp:q.e, principe:q.principe,
+      timed:!game.solo, sec:30, base:15, speed:false,
+      onDone:function(){ k++; rotate(); renderHUD(); step(); }
+    });
+  }
+  step();
+};
+
+/* ====================================================================
+   MANCHE 6 — LE TAPIS FINAL (mise + question mixte)
+   ==================================================================== */
+RUNNERS.boss=function(){
+  /* questions difficiles, mélangées */
+  var pool=shuffle(QUIZ.filter(function(q){return q.diff>=2;}));
+  if(pool.length<game.teams.length*2) pool=shuffle(QUIZ);
+  var turns=game.teams.length*2; /* 2 tours par équipe */
+  var k=0;
+  function step(){
+    if(k>=turns||k>=pool.length){ nextRound(); return; }
+    askWager(pool[k], k===Math.min(turns,pool.length)-1);
+  }
+  function askWager(q,last){
+    resetIC();
+    var t=activeTeam();
+    var content=$("#content"); clear(content);
+    var card=elt("div","card wager-box");
+    card.appendChild(turnBanner());
+    card.innerHTML+='<div class="eyebrow">Le tapis final</div>'+
+      '<h2 class="headline" style="font-size:1.9rem">'+esc(t.name)+', combien tu mises ?</h2>'+
+      '<p class="wager-note">Score actuel : <b>'+t.score+' pts</b>. Bonne réponse = tu gagnes ta mise. Mauvaise = tu la perds.</p>';
+    var opts=elt("div","wager-opts");
+    var choices=[10,20,40].filter(function(v){return v<=Math.max(10,t.score)||true;});
+    choices.forEach(function(v){
+      var b=elt("button","wager-chip",v+" pts");
+      b.onclick=function(){ play(q,v,last); };
+      opts.appendChild(b);
+    });
+    var allin=elt("button","wager-chip allin","TAPIS  ·  "+Math.max(10,t.score)+" pts");
+    allin.onclick=function(){ play(q,Math.max(10,t.score),last); };
+    opts.appendChild(allin);
+    card.appendChild(opts);
+    content.appendChild(card);
+    content.appendChild(toolbar("Mise 10 par défaut"));
+    sWager();
+    IC.primary=function(){ play(q,10,last); };
+  }
+  function play(q,wager,last){
+    renderQCM({
+      item:q,
+      tags:[{cls:"mat "+q.mat,txt:MAT_LABEL[q.mat]},{txt:"Mise : "+wager+" pts"}],
+      question:q.q, choices:q.c, answer:q.a, exp:q.e,
+      timed:true, sec:30, base:wager, speed:false, lossOnWrong:true, lastOne:last,
+      onDone:function(){ k++; rotate(); renderHUD(); step(); }
+    });
+  }
+  step();
+};
+
+/* ====================================================================
+   MANCHE 3 — FRISE CHRONO (ordre) + RELIER
+   ==================================================================== */
+RUNNERS.frise=function(){
+  var sets=pick(FRISE,Math.min(2,FRISE.length));
+  var matchSet=pick(MATCH,1)[0];
+  var tasks=[];
+  sets.forEach(function(s){ tasks.push({type:"order",set:s}); });
+  tasks.push({type:"match",set:matchSet});
+  var ti=0;
+  function step(){ if(ti>=tasks.length){ nextRound(); return; } var t=tasks[ti]; if(t.type==="order")orderTask(t.set,after); else matchTask(t.set,after); }
+  function after(){ ti++; rotate(); renderHUD(); step(); }
+  step();
+};
+function orderTask(set,done){
+  resetIC(); renderHUD();
+  var content=$("#content"); clear(content);
+  var card=elt("div","card");
+  card.appendChild(turnBanner());
+  card.appendChild(elt("div","seq-instruction","📊 "+esc(set.titre)));
+  var slots=elt("div","seq-slots"); var slotEls=[];
+  for(var i=0;i<set.ev.length;i++){ var sl=elt("div","seq-slot","place "+(i+1)); slots.appendChild(sl); slotEls.push(sl); }
+  card.appendChild(slots);
+  var row=elt("div","seq-row"); var cardEls=[];
+  var order=[]; /* indices placés */
+  var shuffled=shuffle(set.ev.map(function(e,i){return i;}));
+  shuffled.forEach(function(idx){
+    var b=elt("button","seq-card",esc(set.ev[idx].t));
+    b.onclick=function(){ placeCard(idx,b); };
+    row.appendChild(b); cardEls[idx]=b;
+  });
+  card.appendChild(row);
+  var fb=elt("div"); fb.id="fb2"; card.appendChild(fb);
+  var valid=elt("button","btn primary mt","Valider la frise"); valid.setAttribute("disabled","disabled");
+  valid.onclick=check; card.appendChild(valid);
+  content.appendChild(card);
+  content.appendChild(toolbar("Valider"));
+  var answered=false;
+  IC.primary=function(){ if(!answered){ if(order.length===set.ev.length)check(); } };
+
+  function placeCard(idx,btn){
+    if(answered)return;
+    order.push(idx); btn.setAttribute("disabled","disabled");
+    var pos=order.length-1;
+    slotEls[pos].className="seq-slot filled";
+    slotEls[pos].innerHTML='<span class="order-badge" style="position:static;display:inline-flex;margin-right:4px">'+order.length+'</span> '+esc(set.ev[idx].t);
+    slotEls[pos].onclick=function(){ if(answered)return; if(pos===order.length-1){ order.pop(); cardEls[idx].removeAttribute("disabled"); slotEls[pos].className="seq-slot"; slotEls[pos].textContent="place "+(pos+1); slotEls[pos].onclick=null; valid.setAttribute("disabled","disabled"); } };
+    if(order.length===set.ev.length) valid.removeAttribute("disabled");
+  }
+  function check(){
+    if(answered)return; answered=true;
+    var correctOrder=set.ev.map(function(e,i){return i;}).sort(function(a,b){return set.ev[a].d-set.ev[b].d;});
+    var good=0;
+    for(var p=0;p<order.length;p++){
+      var ok=(order[p]===correctOrder[p]);
+      if(ok)good++;
+      slotEls[p].className="seq-slot "+(ok?"right":"wrong");
+      slotEls[p].innerHTML=esc(set.ev[order[p]].t);
+    }
+    valid.setAttribute("disabled","disabled");
+    var pts=good*8;
+    addScore(activeTeam(),pts); bumpScore();
+    record(activeTeam(),{theme:"Ranger / ordonner",comp:"Notion"},good===set.ev.length);
+    if(good===set.ev.length)sGood(); else sBad();
+    var fbx=$("#fb2");
+    fbx.appendChild(elt("div","feedback-line "+(good>0?"gain":"nogain"),(good===set.ev.length?"✅ Frise parfaite":"➜ "+good+" / "+set.ev.length+" bien placés")+"  ·  +"+pts+" pts"));
+    var cont=elt("button","btn primary mt","Continuer  ▶"); cont.onclick=done; fbx.appendChild(cont);
+    resetIC(); IC.primary=done;
+  }
+}
+function matchTask(set,done){
+  resetIC(); renderHUD();
+  var content=$("#content"); clear(content);
+  var card=elt("div","card");
+  card.appendChild(turnBanner());
+  card.appendChild(elt("div","seq-instruction","🔗 "+esc(set.titre)));
+  var grid=elt("div","match-grid");
+  var left=elt("div","match-col"), right=elt("div","match-col");
+  var dates=shuffle(set.pairs.map(function(p){return p[0];}));
+  var events=shuffle(set.pairs.map(function(p){return p[1];}));
+  var sel=null, done2=0;
+  dates.forEach(function(d){ var b=elt("button","match-item",esc(d)); b.dataset.k=d; b.onclick=function(){ selectLeft(b); }; left.appendChild(b); });
+  events.forEach(function(e){ var b=elt("button","match-item",esc(e)); b.dataset.k=e; b.onclick=function(){ selectRight(b); }; right.appendChild(b); });
+  grid.appendChild(left); grid.appendChild(right);
+  card.appendChild(grid);
+  var fb=elt("div"); fb.id="fb3"; card.appendChild(fb);
+  content.appendChild(card);
+  content.appendChild(toolbar("Terminer"));
+  IC.primary=finish;
+  function selectLeft(b){ if(b.classList.contains("done"))return; if(sel)sel.classList.remove("sel"); sel=b; b.classList.add("sel"); }
+  function selectRight(b){
+    if(b.classList.contains("done")||!sel)return;
+    var d=sel.dataset.k, e=b.dataset.k;
+    var ok=false; for(var i=0;i<set.pairs.length;i++){ if(set.pairs[i][0]===d&&set.pairs[i][1]===e){ok=true;break;} }
+    if(ok){ sel.classList.remove("sel"); sel.classList.add("done"); b.classList.add("done"); sGood(); addScore(activeTeam(),8); bumpScore(); done2++; sel=null; if(done2===set.pairs.length)finish(); }
+    else { sBad(); b.classList.add("bad"); var bb=b; setTimeout(function(){bb.classList.remove("bad");},500); sel.classList.remove("sel"); sel=null; }
+  }
+  var finished=false;
+  function finish(){
+    if(finished)return; finished=true;
+    record(activeTeam(),{theme:"Calcul & écritures",comp:"Calculer"},done2===set.pairs.length);
+    var fbx=$("#fb3");
+    fbx.appendChild(elt("div","feedback-line gain","🔗 "+done2+" / "+set.pairs.length+" reliés  ·  +"+(done2*8)+" pts"));
+    var cont=elt("button","btn primary mt","Continuer  ▶"); cont.onclick=done; fbx.appendChild(cont);
+    resetIC(); IC.primary=done;
+  }
+}
+
+/* ====================================================================
+   MANCHE 4 — DÉVELOPPEMENT CONSTRUIT EN KIT (tri d'idées)
+   ==================================================================== */
+RUNNERS.dc=function(){
+  var sujets=pick(DCKIT,Math.min(2,DCKIT.length));
+  var si=0;
+  function step(){ if(si>=sujets.length){ nextRound(); return; } sujetTask(sujets[si],function(){ si++; rotate(); renderHUD(); step(); }); }
+  step();
+};
+function sujetTask(s,done){
+  resetIC(); renderHUD();
+  var content=$("#content"); clear(content);
+  var card=elt("div","card");
+  card.appendChild(turnBanner());
+  var sj=elt("div","dc-sujet");
+  sj.innerHTML='<span class="verbe">'+esc(s.verbe)+'</span><div class="txt">'+esc(s.sujet)+'</div>';
+  card.appendChild(sj);
+  card.appendChild(elt("p","muted","Pour chaque affirmation, dis si elle est <b>vraie</b> ou <b>fausse</b>."));
+  var list=elt("div"); card.appendChild(list);
+  var ideas=shuffle(s.idees.slice());
+  var answered=0, good=0;
+  ideas.forEach(function(it){
+    var row=elt("div","idea");
+    row.innerHTML='<span class="lbl">'+esc(it.t)+'</span>';
+    var acts=elt("div","acts");
+    var bu=elt("button",null,"Vrai"); var bh=elt("button",null,"Faux");
+    acts.appendChild(bu); acts.appendChild(bh);
+    row.appendChild(acts);
+    function answer(saidUtile){
+      var ok=(saidUtile===it.bon);
+      row.className="idea "+(ok?"ok":"no");
+      acts.innerHTML='<span class="verdict">'+(ok?"✓ "+(it.bon?"vrai":"faux"):"✗ c'était "+(it.bon?"vrai":"faux"))+'</span>';
+      if(ok){good++; addScore(activeTeam(),6); bumpScore(); sGood();} else sBad();
+      answered++; if(answered===ideas.length)finishDC();
+    }
+    bu.onclick=function(){answer(true);}; bh.onclick=function(){answer(false);};
+    list.appendChild(row);
+  });
+  var fb=elt("div"); fb.id="fb4"; card.appendChild(fb);
+  content.appendChild(card);
+  content.appendChild(toolbar("Terminer le tri"));
+  var fin=false;
+  IC.primary=finishDC;
+  function finishDC(){
+    if(fin)return; fin=true;
+    record(activeTeam(),{theme:"Raisonnement (vrai/faux)",comp:"Raisonner"},good===ideas.length);
+    var fbx=$("#fb4");
+    fbx.appendChild(elt("div","feedback-line "+(good>0?"gain":"nogain"),"✅ "+good+" / "+ideas.length+" justes  ·  +"+(good*6)+" pts"));
+    var cont=elt("button","btn primary mt","Continuer  ▶"); cont.onclick=done; fbx.appendChild(cont);
+    resetIC(); IC.primary=done;
+  }
+}
+
+/* ====================================================================
+   MANCHE 2 — LE PLAN REPÉRÉ (clé interne 'cartes')
+   Repère orthonormé interactif, généré en JS (aucune donnée externe).
+   ==================================================================== */
+var PLAN_MIN=-5, PLAN_MAX=5, PLAN_U=42, PLAN_PAD=36;
+function planGeom(){
+  var span=PLAN_MAX-PLAN_MIN;
+  var W=span*PLAN_U+2*PLAN_PAD;
+  return { W:W, H:W, ox:PLAN_PAD-PLAN_MIN*PLAN_U, oy:PLAN_PAD+PLAN_MAX*PLAN_U };
+}
+function planPx(g,X,Y){ return [g.ox+X*PLAN_U, g.oy-Y*PLAN_U]; }
+function planCell(g,px,py){ return [Math.round((px-g.ox)/PLAN_U), Math.round((g.oy-py)/PLAN_U)]; }
+function planSVG(g){
+  var s='<svg viewBox="0 0 '+g.W+' '+g.H+'" xmlns="http://www.w3.org/2000/svg" class="grid">';
+  var i,a,b;
+  for(i=PLAN_MIN;i<=PLAN_MAX;i++){
+    a=planPx(g,i,PLAN_MIN); b=planPx(g,i,PLAN_MAX);
+    s+='<line class="gl" x1="'+a[0]+'" y1="'+a[1]+'" x2="'+b[0]+'" y2="'+b[1]+'"></line>';
+    a=planPx(g,PLAN_MIN,i); b=planPx(g,PLAN_MAX,i);
+    s+='<line class="gl" x1="'+a[0]+'" y1="'+a[1]+'" x2="'+b[0]+'" y2="'+b[1]+'"></line>';
+  }
+  a=planPx(g,PLAN_MIN,0); b=planPx(g,PLAN_MAX,0);
+  s+='<line class="axis" x1="'+a[0]+'" y1="'+a[1]+'" x2="'+b[0]+'" y2="'+b[1]+'"></line>';
+  s+='<polygon points="'+b[0]+','+b[1]+' '+(b[0]-9)+','+(b[1]-4)+' '+(b[0]-9)+','+(b[1]+4)+'" fill="#1b2030"></polygon>';
+  s+='<text class="axlab" x="'+(b[0]-2)+'" y="'+(b[1]-9)+'" text-anchor="end">x</text>';
+  a=planPx(g,0,PLAN_MIN); b=planPx(g,0,PLAN_MAX);
+  s+='<line class="axis" x1="'+a[0]+'" y1="'+a[1]+'" x2="'+b[0]+'" y2="'+b[1]+'"></line>';
+  s+='<polygon points="'+b[0]+','+b[1]+' '+(b[0]-4)+','+(b[1]+9)+' '+(b[0]+4)+','+(b[1]+9)+'" fill="#1b2030"></polygon>';
+  s+='<text class="axlab" x="'+(b[0]+9)+'" y="'+(b[1]+5)+'">y</text>';
+  for(i=PLAN_MIN;i<=PLAN_MAX;i++){
+    if(i===0) continue;
+    var p=planPx(g,i,0); s+='<text class="tick" x="'+p[0]+'" y="'+(p[1]+16)+'" text-anchor="middle">'+i+'</text>';
+    var q=planPx(g,0,i); s+='<text class="tick" x="'+(q[0]-8)+'" y="'+(q[1]+4)+'" text-anchor="end">'+i+'</text>';
+  }
+  var o=planPx(g,0,0); s+='<text class="tick" x="'+(o[0]-8)+'" y="'+(o[1]+16)+'" text-anchor="end">O</text>';
+  s+='<rect class="hit" x="0" y="0" width="'+g.W+'" height="'+g.H+'" fill="transparent"></rect>';
+  s+='</svg>'; return s;
+}
+function planMarker(svg,g,X,Y,cls,label){
+  var ns="http://www.w3.org/2000/svg";
+  var pos=planPx(g,X,Y);
+  var grp=document.createElementNS(ns,"g"); grp.setAttribute("class","pin "+(cls||""));
+  var c=document.createElementNS(ns,"circle"); c.setAttribute("cx",pos[0]); c.setAttribute("cy",pos[1]); c.setAttribute("r","8"); c.setAttribute("class","dot");
+  grp.appendChild(c);
+  if(label){ var t=document.createElementNS(ns,"text"); t.setAttribute("x",pos[0]); t.setAttribute("y",pos[1]-13); t.setAttribute("text-anchor","middle"); t.textContent=label; grp.appendChild(t); }
+  svg.appendChild(grp);
+}
+function rndCoord(){ return Math.floor(Math.random()*(PLAN_MAX-PLAN_MIN+1))+PLAN_MIN; }
+function rndPoint(noOrigin){ var x,y; do{ x=rndCoord(); y=rndCoord(); }while(noOrigin&&x===0&&y===0); return [x,y]; }
+function genPlanPrompts(){
+  var ps=[];
+  var A=rndPoint(true); ps.push({type:"place",X:A[0],Y:A[1],label:"A"});
+  var B=rndPoint(true); ps.push({type:"place",X:B[0],Y:B[1],label:"B"});
+  var C=rndPoint(false);
+  var good="("+C[0]+" ; "+C[1]+")";
+  var opts=[good];
+  var distract=["("+C[1]+" ; "+C[0]+")","("+(-C[0])+" ; "+C[1]+")","("+C[0]+" ; "+(-C[1])+")"];
+  for(var i=0;i<distract.length;i++){ if(opts.indexOf(distract[i])<0) opts.push(distract[i]); }
+  while(opts.length<4){ var d=rndPoint(false); var st="("+d[0]+" ; "+d[1]+")"; if(opts.indexOf(st)<0) opts.push(st); }
+  opts=shuffle(opts.slice(0,4)); if(opts.indexOf(good)<0) opts[0]=good;
+  ps.push({type:"read",X:C[0],Y:C[1],label:"C",choices:opts,ans:opts.indexOf(good)});
+  var D=rndPoint(true);
+  var transfos=[
+    {n:"la symétrie d'axe (Oy)",f:function(p){return [-p[0],p[1]];}},
+    {n:"la symétrie d'axe (Ox)",f:function(p){return [p[0],-p[1]];}},
+    {n:"la symétrie de centre O",f:function(p){return [-p[0],-p[1]];}}
+  ];
+  var tr=transfos[Math.floor(Math.random()*transfos.length)];
+  var img=tr.f(D);
+  ps.push({type:"image",X:img[0],Y:img[1],label:"D'",baseX:D[0],baseY:D[1],transfo:tr.n,baseLabel:"D"});
+  return ps;
+}
+RUNNERS.cartes=function(){
+  var prompts=genPlanPrompts();
+  var g=planGeom();
+  renderHUD();
+  var content=$("#content"); clear(content);
+  var card=elt("div","card");
+  var tb=elt("div","turn-banner"); card.appendChild(tb);
+  var sub=elt("div","eyebrow"); sub.style.marginBottom="4px"; sub.textContent="Repère orthonormé";
+  card.appendChild(sub);
+  var promptEl=elt("div","map-prompt"); card.appendChild(promptEl);
+  var wrap=elt("div","mapwrap"); card.appendChild(wrap);
+  var choicesBox=elt("div","choices"); choicesBox.style.marginTop="12px"; card.appendChild(choicesBox);
+  var prog=elt("div","map-progress"); card.appendChild(prog);
+  var fb=elt("div"); fb.id="fbm"; card.appendChild(fb);
+  content.appendChild(card);
+  content.appendChild(toolbar("Passer ce repère"));
+  var pi=0, answered=false;
+  function setTurn(){ if(game.solo){ tb.style.display="none"; return; } tb.style.setProperty("--c",activeTeam().col); tb.innerHTML='<span class="turn-dot"></span> Au tour de <b style="margin-left:4px">'+esc(activeTeam().name)+'</b>'; }
+  function ask(){
+    if(pi>=prompts.length){ nextRound(); return; }
+    resetIC();
+    answered=false; clear($("#fbm")); clear(choicesBox); choicesBox.style.display="none";
+    setTurn();
+    var pr=prompts[pi];
+    prog.textContent="Repère "+(pi+1)+" / "+prompts.length;
+    wrap.innerHTML=planSVG(g);
+    var svg=$("svg",wrap);
+    if(pr.type==="place"){
+      promptEl.innerHTML='Place le point <span class="what">'+pr.label+'('+pr.X+' ; '+pr.Y+')</span>';
+      bindGrid(svg,pr,pr.label);
+    } else if(pr.type==="image"){
+      planMarker(svg,g,pr.baseX,pr.baseY,"good",pr.baseLabel+"("+pr.baseX+" ; "+pr.baseY+")");
+      promptEl.innerHTML='Place <span class="what">l\'image de '+pr.baseLabel+'('+pr.baseX+' ; '+pr.baseY+')</span> par '+pr.transfo;
+      bindGrid(svg,pr,pr.label);
+    } else {
+      planMarker(svg,g,pr.X,pr.Y,"good",pr.label);
+      promptEl.innerHTML='Quelles sont les coordonnées du point <span class="what">'+pr.label+'</span> ?';
+      choicesBox.style.display="grid";
+      for(var i=0;i<pr.choices.length;i++){ (function(idx){
+        var b=elt("button","choice"); b.innerHTML='<span class="key">'+(idx+1)+'</span>'+esc(pr.choices[idx]);
+        b.onclick=function(){ if(!answered)resolveRead(idx,pr); };
+        choicesBox.appendChild(b);
+        IC.selects[idx]=function(){ if(!answered)resolveRead(idx,pr); };
+      })(i); }
+    }
+    IC.primary=function(){ if(!answered) skip(pr); };
+  }
+  function bindGrid(svg,pr,label){
+    var hit=$(".hit",svg);
+    hit.onclick=function(evt){
+      if(answered)return;
+      var r=svg.getBoundingClientRect();
+      var px=(evt.clientX-r.left)*(g.W/r.width);
+      var py=(evt.clientY-r.top)*(g.H/r.height);
+      var cell=planCell(g,px,py);
+      var X=cell[0], Y=cell[1];
+      if(X<PLAN_MIN)X=PLAN_MIN; if(X>PLAN_MAX)X=PLAN_MAX; if(Y<PLAN_MIN)Y=PLAN_MIN; if(Y>PLAN_MAX)Y=PLAN_MAX;
+      var ok=(X===pr.X&&Y===pr.Y);
+      planMarker(svg,g,X,Y, ok?"good":"bad", "("+X+" ; "+Y+")");
+      if(!ok) planMarker(svg,g,pr.X,pr.Y,"good", label+"("+pr.X+" ; "+pr.Y+")");
+      finish(ok,"c'était "+label+"("+pr.X+" ; "+pr.Y+")");
+    };
+  }
+  function resolveRead(i,pr){
+    if(answered)return;
+    var btns=choicesBox.querySelectorAll(".choice");
+    for(var j=0;j<btns.length;j++){ btns[j].setAttribute("disabled","disabled"); }
+    btns[pr.ans].className="choice good"; if(i!==pr.ans)btns[i].className="choice bad";
+    finish(i===pr.ans,"les coordonnées étaient "+pr.choices[pr.ans]);
+  }
+  function skip(pr){
+    var svg=$("svg",wrap);
+    if(pr.type==="read"){
+      var btns=choicesBox.querySelectorAll(".choice");
+      for(var j=0;j<btns.length;j++){ btns[j].setAttribute("disabled","disabled"); }
+      if(btns[pr.ans])btns[pr.ans].className="choice good";
+      finish(false,"les coordonnées étaient "+pr.choices[pr.ans]);
+    } else {
+      planMarker(svg,g,pr.X,pr.Y,"good",pr.label+"("+pr.X+" ; "+pr.Y+")");
+      finish(false,"c'était "+pr.label+"("+pr.X+" ; "+pr.Y+")");
+    }
+  }
+  function finish(correct,revealMsg){
+    if(answered)return; answered=true;
+    addScore(activeTeam(),correct?12:0); bumpScore();
+    record(activeTeam(),{theme:"Repérage dans le plan",comp:"Se repérer"},correct);
+    if(correct)sGood(); else sBad();
+    var fbx=$("#fbm");
+    var line=elt("div","feedback-line "+(correct?"gain":"nogain"));
+    line.innerHTML=correct?"✅ Bien joué  ·  +12 pts":"❌ Raté — "+esc(revealMsg);
+    fbx.appendChild(line);
+    var cont=elt("button","btn primary mt","Continuer  ▶");
+    cont.onclick=function(){ pi++; rotate(); renderHUD(); ask(); };
+    fbx.appendChild(cont);
+    resetIC(); IC.primary=cont.onclick;
+  }
+  ask();
+};
+
+/* ====================================================================
+   BILAN FINAL
+   ==================================================================== */
+function niveau(p){
+  if(p>=85)return{l:"Expert",c:"#34935f"};
+  if(p>=70)return{l:"Solide",c:"#2f74c0"};
+  if(p>=50)return{l:"Correct",c:"#e2a317"};
+  return{l:"Fragile",c:"#d6453a"};
+}
+function barColor(p){ return p>=70?"#34935f":(p>=50?"#e2a317":"#d6453a"); }
+function showBilan(){
+  if(game.solo){ renderSoloBilan(); return; }
+  stopTimer(); resetIC();
+  var a=app(); clear(a);
+  var ranked=game.teams.slice().sort(function(x,y){return y.score-x.score;});
+
+  var head=elt("div","card center");
+  head.innerHTML='<div class="eyebrow">Fin du défi</div><h1 class="headline">Classement final</h1>';
+  /* podium */
+  var pod=elt("div","podium");
+  var orderPod=[]; if(ranked[1])orderPod.push({t:ranked[1],r:2,cls:"p2"}); orderPod.push({t:ranked[0],r:1,cls:"p1"}); if(ranked[2])orderPod.push({t:ranked[2],r:3,cls:"p3"});
+  orderPod.forEach(function(o){
+    var d=elt("div","pod "+o.cls);
+    d.innerHTML=(o.r===1?'<div class="crown">👑</div>':'')+
+      '<div class="block" style="'+(o.cls!=="p1"?"":"")+'"><div class="nm">'+esc(o.t.name)+'</div><div class="sc">'+o.t.score+'</div></div>'+
+      '<div class="rank">'+o.r+(o.r===1?"er":"e")+'</div>';
+    if(o.cls!=="p1"&&o.cls!=="p2"&&o.cls!=="p3"){}
+    pod.appendChild(d);
+  });
+  head.appendChild(pod);
+  /* équipes restantes (4e) */
+  if(ranked.length>3){
+    var rest=elt("p","muted center");
+    rest.textContent=ranked.slice(3).map(function(t,i){return (i+4)+"e — "+t.name+" ("+t.score+" pts)";}).join("   ·   ");
+    head.appendChild(rest);
+  }
+  a.appendChild(head);
+
+  /* bilan pédagogique */
+  var classTheme={};
+  game.teams.forEach(function(t){ for(var k in t.byTheme){ var s=classTheme[k]||{ok:0,tot:0}; s.ok+=t.byTheme[k].ok; s.tot+=t.byTheme[k].tot; classTheme[k]=s; } });
+  var themeArr=[]; for(var k in classTheme){ themeArr.push({nm:k,pc:Math.round(classTheme[k].ok/classTheme[k].tot*100),tot:classTheme[k].tot}); }
+  themeArr.sort(function(x,y){return x.pc-y.pc;});
+
+  var rev=elt("div","card");
+  rev.innerHTML='<div class="eyebrow">Bilan de la classe</div><h2 class="headline" style="font-size:1.6rem">Ce qu\'il faut revoir</h2>';
+  if(themeArr.length===0){ rev.appendChild(elt("p","muted","Aucune donnée enregistrée sur cette partie.")); }
+  else{
+    var grid=elt("div","review");
+    var col1=elt("div","col"); col1.innerHTML='<h3>Réussite par thème</h3>';
+    themeArr.forEach(function(o){
+      var row=elt("div","bar-row");
+      row.innerHTML='<span class="nm">'+esc(o.nm)+'</span><span class="track"><i style="width:'+o.pc+'%;background:'+barColor(o.pc)+'"></i></span><span class="pc" style="color:'+barColor(o.pc)+'">'+o.pc+'%</span>';
+      col1.appendChild(row);
+    });
+    var col2=elt("div","col"); col2.innerHTML='<h3>Niveau DNB par équipe</h3>';
+    ranked.forEach(function(t){
+      var p=t.tot?Math.round(t.ok/t.tot*100):0; var nv=niveau(p);
+      var row=elt("div","bar-row");
+      row.innerHTML='<span class="nm" style="font-weight:600">'+esc(t.name)+'</span>'+
+        '<span class="track"><i style="width:'+p+'%;background:'+nv.c+'"></i></span>'+
+        '<span class="niveau" style="background:'+nv.c+'">'+nv.l+'</span>';
+      col2.appendChild(row);
+    });
+    var prio=themeArr.slice(0,2).map(function(o){return o.nm;});
+    var tip=elt("p","muted"); tip.style.marginTop="12px";
+    tip.innerHTML='🎯 Priorité de révision pour la classe : <b>'+esc(prio.join(" · "))+'</b>.';
+    grid.appendChild(col1); grid.appendChild(col2);
+    rev.appendChild(grid); rev.appendChild(tip);
+  }
+  a.appendChild(rev);
+
+  var bar=elt("div","toolbar");
+  var again=elt("button","btn primary","↻ Rejouer (mêmes équipes)");
+  again.onclick=function(){ var names=game.teams.map(function(t){return t.name;}); var rounds=game.rounds.slice(); var se=game.showExp; newGame(names,rounds,se); nextRound(); };
+  var nw=elt("button","btn ghost","⚙ Nouveau réglage"); nw.style.color="var(--panel)";
+  nw.onclick=renderSetup;
+  bar.appendChild(again); bar.appendChild(elt("span","hud-spacer")); bar.appendChild(nw);
+  a.appendChild(bar);
+  a.appendChild(foot());
+
+  if(ranked[0]&&ranked[0].score>0){ sWin(); confetti(); }
+}
+
+/* ====================================================================
+   MODE : choix d'accueil + RÉVISION SOLO (un élève / un PC)
+   ==================================================================== */
+var SOLO_INTRO={
+  sprint:"Une question, quatre réponses. Prends ton temps, clique : la correction et l'explication s'affichent aussitôt.",
+  cartes:"Un repère orthonormé. Clique au bon endroit pour placer un point, ou lis ses coordonnées. Symétries et translations.",
+  frise:"Des nombres ou des étapes de calcul mélangés. Remets-les dans l'ordre.",
+  dc:"Une affirmation mathématique : à toi de dire si elle est vraie ou fausse.",
+  emc:"Un problème concret ou un petit script Scratch : choisis la bonne réponse, puis lis la méthode."
+};
+function renderHome(){
+  resetIC(); stopTimer(); var a=app(); clear(a);
+  var wrap=elt("div","hero-wrap");
+  var hero=elt("div","card");
+  hero.innerHTML='<div class="eyebrow">Brevet 2026 · Mathématiques</div>'+
+    '<h1 class="headline">Le Grand Défi <span class="pop">Brevet</span></h1>'+
+    '<p class="sub">Tout le programme de maths de 3e : calcul, repère, géométrie, fonctions, problèmes et algorithmique. Choisis ton mode.</p>';
+  wrap.appendChild(hero);
+  var grid=elt("div","setup-grid");
+  var solo=elt("button","card mode-card");
+  solo.innerHTML='<div style="font-size:3rem">👤</div>'+
+    '<h2 class="headline" style="font-size:1.7rem">Réviser seul</h2>'+
+    '<p class="sub">Un élève, un ordinateur, à son rythme. Tu choisis une activité ou la révision complète. Correction immédiate, sans chrono, et bilan personnel par thème.</p>'+
+    '<span class="mode-go">Commencer ma révision  ▶</span>';
+  solo.onclick=renderSoloMenu;
+  var cls=elt("button","card mode-card");
+  cls.innerHTML='<div style="font-size:3rem">🏆</div>'+
+    '<h2 class="headline" style="font-size:1.7rem">Jouer en classe</h2>'+
+    '<p class="sub">Au vidéoprojecteur, en équipes. Six manches, tableau des scores et tapis final. Pour animer une heure de révision.</p>'+
+    '<span class="mode-go">Régler le tournoi  ▶</span>';
+  cls.onclick=renderSetup;
+  grid.appendChild(solo); grid.appendChild(cls);
+  wrap.appendChild(grid);
+  wrap.appendChild(foot());
+  a.appendChild(wrap);
+}
+function renderSoloMenu(){
+  resetIC(); stopTimer(); var a=app(); clear(a);
+  var wrap=elt("div","hero-wrap");
+  var hero=elt("div","card");
+  hero.innerHTML='<div class="eyebrow">Réviser seul · à ton rythme</div>'+
+    '<h1 class="headline">Qu\'est-ce que tu révises ?</h1>'+
+    '<p class="sub">Choisis une activité pour travailler un point précis, ou lance la révision complète pour tout balayer. À la fin, tu vois ton score, ton niveau et les thèmes à retravailler.</p>';
+  var nm=elt("div","team-row"); nm.style.maxWidth="360px"; nm.style.marginTop="14px";
+  nm.innerHTML='<span class="swatch" style="--c:var(--t2)"></span>';
+  var inp=elt("input"); inp.type="text"; inp.placeholder="Ton prénom (facultatif)"; inp.maxLength=22; inp.id="soloName";
+  nm.appendChild(inp); hero.appendChild(nm);
+  wrap.appendChild(hero);
+
+  var full=elt("button","card mode-card");
+  full.innerHTML='<div style="font-size:2.2rem">🎓</div>'+
+    '<h2 class="headline" style="font-size:1.5rem">Révision complète</h2>'+
+    '<p class="sub">Calcul, repère, rangement, vrai/faux et problèmes à la suite — toute la séquence.</p>'+
+    '<span class="mode-go">Tout réviser  ▶</span>';
+  full.onclick=function(){ startSolo(["sprint","cartes","frise","dc","emc"]); };
+  wrap.appendChild(full);
+
+  var grid=elt("div","solo-grid");
+  var acts=[
+    {id:"sprint",ic:"⚡",tt:"Calcul & notions",ds:"Fractions, puissances, calcul littéral…"},
+    {id:"cartes",ic:"📍",tt:"Le plan repéré",ds:"Placer et lire des points, transformations"},
+    {id:"frise", ic:"📊",tt:"Ranger / ordonner",ds:"Nombres dans l'ordre, étapes de calcul"},
+    {id:"dc",    ic:"✅",tt:"Vrai ou faux",ds:"Juge des affirmations mathématiques"},
+    {id:"emc",   ic:"🧩",tt:"Problèmes & Scratch",ds:"Situations concrètes, algorithmique"}
+  ];
+  acts.forEach(function(o){
+    var b=elt("button","card mode-card solo-tile");
+    b.innerHTML='<div style="font-size:1.8rem">'+o.ic+'</div>'+
+      '<div class="tt" style="font-family:var(--disp);font-weight:700;font-size:1.1rem">'+o.tt+'</div>'+
+      '<p class="sub">'+o.ds+'</p>';
+    b.onclick=function(){ startSolo([o.id]); };
+    grid.appendChild(b);
+  });
+  wrap.appendChild(grid);
+
+  var bar=elt("div","toolbar");
+  var back=elt("button","btn ghost small","← Retour"); back.onclick=renderHome;
+  bar.appendChild(back);
+  wrap.appendChild(bar);
+  wrap.appendChild(foot());
+  a.appendChild(wrap);
+}
+function startSolo(rounds){
+  initAudio();
+  var f=$("#soloName"); var name=(f&&f.value.trim())?f.value.trim():"Toi";
+  newGame([name],rounds,true,true);
+  nextRound();
+}
+function renderSoloBilan(){
+  stopTimer(); resetIC();
+  var t=game.teams[0];
+  var a=app(); clear(a);
+  var p=t.tot?Math.round(t.ok/t.tot*100):0; var nv=niveau(p);
+  var head=elt("div","card center");
+  head.innerHTML='<div class="eyebrow">Bilan de ta révision</div>'+
+    '<h1 class="headline">'+esc(t.name)+', voici ton résultat</h1>'+
+    '<div style="font-family:var(--disp);font-weight:700;font-size:3.4rem;margin:12px 0 0">'+t.score+' <span style="font-size:1.3rem;color:var(--ink-soft)">pts</span></div>'+
+    '<div style="margin:10px 0"><span class="niveau" style="background:'+nv.c+';font-size:1rem">Niveau '+nv.l+'</span></div>'+
+    '<p class="muted">'+t.ok+' bonnes réponses sur '+t.tot+'  ·  '+p+'% de réussite</p>';
+  a.appendChild(head);
+
+  var themeArr=[]; for(var k in t.byTheme){ themeArr.push({nm:k,pc:Math.round(t.byTheme[k].ok/t.byTheme[k].tot*100)}); }
+  themeArr.sort(function(x,y){return x.pc-y.pc;});
+  if(themeArr.length){
+    var rev=elt("div","card");
+    rev.innerHTML='<div class="eyebrow">Par thème</div><h2 class="headline" style="font-size:1.5rem">Ce que tu maîtrises, ce qu\'il faut revoir</h2>';
+    themeArr.forEach(function(o){
+      var row=elt("div","bar-row");
+      row.innerHTML='<span class="nm">'+esc(o.nm)+'</span><span class="track"><i style="width:'+o.pc+'%;background:'+barColor(o.pc)+'"></i></span><span class="pc" style="color:'+barColor(o.pc)+'">'+o.pc+'%</span>';
+      rev.appendChild(row);
+    });
+    var weak=themeArr.filter(function(o){return o.pc<70;}).slice(0,3).map(function(o){return o.nm;});
+    if(weak.length){ var tip=elt("p","muted"); tip.style.marginTop="12px"; tip.innerHTML='🎯 À retravailler en priorité : <b>'+esc(weak.join(" · "))+'</b>.'; rev.appendChild(tip); }
+    a.appendChild(rev);
+  }
+
+  var bar=elt("div","toolbar");
+  var again=elt("button","btn primary","↻ Recommencer");
+  again.onclick=function(){ var name=t.name; var rounds=game.rounds.slice(); newGame([name],rounds,true,true); nextRound(); };
+  var menu=elt("button","btn ghost","← Autres révisions"); menu.style.color="var(--panel)";
+  menu.onclick=renderSoloMenu;
+  bar.appendChild(again); bar.appendChild(elt("span","hud-spacer")); bar.appendChild(menu);
+  a.appendChild(bar);
+  a.appendChild(foot());
+  if(p>=70){ sWin(); confetti(); }
+}
+
+/* ====================================================================
+   DÉMARRAGE
+   ==================================================================== */
+try{var _vb=document.getElementById("appver");if(_vb)_vb.textContent="v3 · "+QUIZ.length+" questions";}catch(e){}
+renderHome();
+</script>
+</body>
+</html>
